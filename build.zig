@@ -8,11 +8,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
         .shared = false,
-        .use_x11 = true,
-        .use_w1 = true,
-        .use_opengl = false,
-        .use_gles = false,
-        .use_metal = true,
+        .x11 = true,
+        .wayland = true,
+        .opengl = false,
+        .gles = false,
+        .metal = true,
     });
     const KeyModule = b.createModule(.{
         .root_source_file = .{ .path = "src/Key.zig" },
