@@ -5,6 +5,7 @@
     .dependencies = .{
         .glfw = .{
             .url = "https://github.com/hexops/glfw/archive/586e14a964740747ca7913fc17096b3bb3d52409.tar.gz",
+            .hash = "122091debcee20ff2aaf983a9e8c215d4e50cc6caf44975442218901ea728e7dd79a",
         },
     },
 
