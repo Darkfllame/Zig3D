@@ -1,0 +1,22 @@
+.{
+    .name = "glad-glfw",
+    .version = "0.1.0",
+
+    .dependencies = .{
+        .glfw = .{
+            .url = "https://github.com/hexops/glfw/archive/586e14a964740747ca7913fc17096b3bb3d52409.tar.gz",
+        },
+    },
+
+    .paths = .{
+        "",
+        "build.zig",
+        "build.zig.zon",
+        "src/glad.c",
+        "src/glad.zig",
+        "src/glfw.zig",
+        "src/Key.zig",
+        "src/lib.zig",
+        "src/utils.zig",
+    },
+}
