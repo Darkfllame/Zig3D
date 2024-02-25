@@ -24,6 +24,9 @@ pub const Mat4d = ziglm.Mat4(f64);
 pub const GladLoadProc = *const fn ([*c]const u8) callconv(.C) ?*anyopaque;
 pub const DebugProc = *const fn (source: DebugSource, kind: DebugType, id: u32, severity: DebugSeverity, message: []const u8, userData: ?*anyopaque) void;
 
+var messageAllocator: ?Allocator = null;
+var errMessage: ?[]const u8 = null;
+
 pub const Version = struct {
     major: u32 = 1,
     minor: u32 = 0,
@@ -79,6 +82,29 @@ pub fn init(loader: ?GladLoadProc) Error!Version {
     c.glGetIntegerv(c.GL_MAJOR_VERSION, @ptrCast(&ver.major));
     c.glGetIntegerv(c.GL_MINOR_VERSION, @ptrCast(&ver.minor));
     return ver;
+}
+pub fn deinit() void {
+    clearError();
+}
+
+pub fn clearError() void {
+    if (errMessage) |_| {
+        if (messageAllocator) |_| {
+            messageAllocator.?.free(errMessage.?);
+        }
+    }
+    messageAllocator = null;
+    errMessage = null;
+}
+
+pub fn getErrorMessage() []const u8 {
+    return errMessage orelse "";
+}
+
+pub fn setErrorMessage(allocator: Allocator, mess: []const u8) void {
+    clearError();
+    messageAllocator = allocator;
+    errMessage = mess;
 }
 
 pub fn viewport(x: u32, y: u32, width: usize, height: usize) void {
@@ -509,25 +535,19 @@ pub const Shader = struct {
     // Error type was too long
     pub fn sourceFile(self: *const Shader, allocator: Allocator, filename: []const u8) utils.FnErrorSet(utils.readFile)!*const Shader {
         const content = try utils.readFile(allocator, filename);
-        _ = try self.source(content, allocator);
+        _ = try self.source(content);
         allocator.free(content);
         return self;
     }
-    pub fn source(self: *const Shader, src: []const u8, allocator: Allocator) Allocator.Error!*const Shader {
-        const src_cpy = utils.copy(
-            u8,
-            try allocator.alloc(u8, src.len + 1),
-            src,
-        );
-        defer allocator.free(src_cpy);
-
-        src_cpy[src.len] = 0;
-
+    pub fn source(self: *const Shader, src: []const u8) *const Shader {
+        const lens: []const c_int = &.{
+            @intCast(src.len),
+        };
         c.glShaderSource(
             @intCast(self.id),
             1,
-            @ptrCast(&src_cpy.ptr),
-            null,
+            @ptrCast(&src.ptr),
+            @ptrCast(lens.ptr),
         );
         return self;
     }
@@ -540,11 +560,12 @@ pub const Shader = struct {
             c.glGetShaderiv(@intCast(self.id), c.GL_INFO_LOG_LENGTH, @ptrCast(&length));
 
             const log = try allocator.alloc(u8, length);
-            defer allocator.free(log);
 
             c.glGetShaderInfoLog(@intCast(self.id), @intCast(length), null, @ptrCast(log.ptr));
 
-            return errFromC(status);
+            setErrorMessage(allocator, log);
+
+            return errFromC(@intCast(status));
         }
         return self;
     }
@@ -604,8 +625,6 @@ inline fn barrierBits2GL(bits: BarrierBits) c.GLbitfield {
 }
 
 pub const ShaderProgram = struct {
-    // TODO: Make uniforms functions
-
     id: u32 = 0,
 
     pub fn create() ShaderProgram {
@@ -635,7 +654,7 @@ pub const ShaderProgram = struct {
 
             c.glGetProgramInfoLog(@intCast(self.id), @intCast(length), null, @ptrCast(log.ptr));
 
-            return errFromC(status);
+            return errFromC(@intCast(status));
         }
     }
 
@@ -652,11 +671,12 @@ pub const ShaderProgram = struct {
             c.glGetProgramiv(@intCast(self.id), c.GL_INFO_LOG_LENGTH, @ptrCast(&length));
 
             const log = try allocator.alloc(u8, length);
-            defer allocator.free(log);
 
             c.glGetProgramInfoLog(@intCast(self.id), @intCast(length), null, @ptrCast(log.ptr));
 
-            return errFromC(status);
+            setErrorMessage(allocator, log);
+
+            return errFromC(@intCast(status));
         }
         return self;
     }
