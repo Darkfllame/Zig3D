@@ -59,6 +59,14 @@ pub fn FnErrorSet(comptime F: anytype) type {
     return @typeInfo(@typeInfo(@TypeOf(F)).Fn.return_type.?).ErrorUnion.error_set;
 }
 
+pub fn opaqueCast(comptime T: type, v: anytype) @TypeOf(v) {
+    if (@typeInfo(T) != .Pointer or @typeInfo(@TypeOf(v)) != .Pointer) {
+        @compileError("'T' and 'v' must be/have pointer type, got " ++ @tagName(@typeInfo(T)) ++ " and " ++ @tagName(@typeInfo(@TypeOf(v))));
+    }
+
+    return @ptrCast(@alignCast(@constCast(@volatileCast(v))));
+}
+
 pub const ErrorLogger = struct {
     allocator: Allocator,
     buffer: ?[]u8 = null,

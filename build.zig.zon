@@ -7,6 +7,10 @@
             .url = "https://github.com/hexops/glfw/archive/586e14a964740747ca7913fc17096b3bb3d52409.tar.gz",
             .hash = "122091debcee20ff2aaf983a9e8c215d4e50cc6caf44975442218901ea728e7dd79a",
         },
+        .freetype = .{
+            .url = "https://github.com/hexops/freetype/archive/398638fd1cb723e478658ea371fe3be1a4dce0ae.tar.gz",
+            .hash = "12208c57b72e3fb5c8d5d3e667e2e21ca1d9e2b6fc3f84182b320f63933f591823da",
+        },
     },
 
     .paths = .{

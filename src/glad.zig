@@ -25,8 +25,8 @@ pub const GladLoadProc = *const fn ([*c]const u8) callconv(.C) ?*anyopaque;
 pub const DebugProc = *const fn (source: DebugSource, kind: DebugType, id: u32, severity: DebugSeverity, message: []const u8, userData: ?*anyopaque) void;
 
 pub const Version = struct {
-    minor: u32 = 1,
-    major: u32 = 0,
+    major: u32 = 1,
+    minor: u32 = 0,
 
     comptime {
         if (@sizeOf(u32) != @sizeOf(c_int) or @alignOf(u32) != @alignOf(c_int))
@@ -680,12 +680,12 @@ pub const ShaderProgram = struct {
                     Vec3d => c.glUniform3d(@intCast(location), value.x, value.y, value.z),
                     Vec4f => c.glUniform4f(@intCast(location), value.x, value.y, value.z, value.w),
                     Vec4d => c.glUniform4d(@intCast(location), value.x, value.y, value.z, value.w),
-                    Mat2f => c.glUniformMatrix2fv(@intCast(location), comptime 2 * 2, false, value.cols),
-                    Mat2d => c.glUniformMatrix2dv(@intCast(location), comptime 2 * 2, false, value.cols),
-                    Mat3f => c.glUniformMatrix3fv(@intCast(location), comptime 3 * 3, false, value.cols),
-                    Mat3d => c.glUniformMatrix3dv(@intCast(location), comptime 3 * 3, false, value.cols),
-                    Mat4f => c.glUniformMatrix4fv(@intCast(location), comptime 4 * 4, false, value.cols),
-                    Mat4d => c.glUniformMatrix4dv(@intCast(location), comptime 4 * 4, false, value.cols),
+                    Mat2f => c.glUniformMatrix2fv(@intCast(location), 1, false, value.cols),
+                    Mat2d => c.glUniformMatrix2dv(@intCast(location), 1, false, value.cols),
+                    Mat3f => c.glUniformMatrix3fv(@intCast(location), 1, false, value.cols),
+                    Mat3d => c.glUniformMatrix3dv(@intCast(location), 1, false, value.cols),
+                    Mat4f => c.glUniformMatrix4fv(@intCast(location), 1, false, value.cols),
+                    Mat4d => c.glUniformMatrix4dv(@intCast(location), 1, false, value.cols),
                     else => @compileError("Cannot set uniform with type " ++ T),
                 }
             },

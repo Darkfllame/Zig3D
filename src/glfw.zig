@@ -51,7 +51,18 @@ pub fn getError(description: ?*[]const u8) Error {
 const Allocator = std.mem.Allocator;
 
 pub const MousePosCallback = *const fn (window: *Window, x: f64, y: f64) anyerror!void;
+pub const ButtonCallback = *const fn (window: *Window, button: u32, action: Key.Action, mods: Key.Mods) anyerror!void;
 pub const KeyCallback = *const fn (window: *Window, key: Key, action: Key.Action, mods: Key.Mods) anyerror!void;
+pub const CharCallback = *const fn (window: *Window, char: u32) anyerror!void;
+pub const EnterCallback = *const fn (window: *Window, entered: bool) anyerror!void;
+pub const ScrollCallback = *const fn (window: *Window, x: f64, y: f64) anyerror!void;
+pub const DropCallback = *const fn (window: *Window, paths: []const []const u8) anyerror!void;
+
+pub const GlfwVersion = struct {
+    major: u8 = 1,
+    minor: u8 = 0,
+    revision: u8 = 0,
+};
 
 pub fn getProcAddress(procname: [*c]const u8) callconv(.C) ?*anyopaque {
     return @ptrCast(@constCast(c.glfwGetProcAddress(procname)));
@@ -67,6 +78,14 @@ pub fn terminate() void {
     c.glfwTerminate();
 }
 
+pub fn getVersion() GlfwVersion {
+    return .{
+        .major = c.GLFW_VERSION_MAJOR,
+        .minor = c.GLFW_VERSION_MINOR,
+        .revision = c.GLFW_VERSION_REVISION,
+    };
+}
+
 var pollErr: ?anyerror = null;
 
 pub fn pollEvents() anyerror!void {
@@ -77,7 +96,7 @@ pub fn pollEvents() anyerror!void {
     }
 }
 
-const dontCare: u32 = @truncate(-1);
+pub const DontCare: u32 = @truncate(-1);
 
 pub const GlfwAPI = enum(u32) {
     OpenGL = @intCast(c.GLFW_OPENGL_API),
@@ -139,7 +158,7 @@ pub const WindowHint = struct {
     accumAphaBits: u32 = 0,
     auxBuffers: u32 = 0,
     samples: u32 = 0,
-    refreshRate: u32 = dontCare,
+    refreshRate: u32 = DontCare,
     stereo: bool = false,
     srgbCapable: bool = false,
     doubleBuffer: bool = true,
@@ -210,27 +229,100 @@ fn windowHint(hint: WindowHint) void {
     wHintS(c.GLFW_X11_INSTANCE_NAME, hint.x11InstanceName.ptr);
 }
 
-pub const Window = struct {
+pub const InputMode = enum {
+    StickyKeys,
+    StickyMouseButtons,
+    LockKeyMods,
+};
+pub const CursorInputMode = enum {
+    Normal,
+    Hidden,
+    Disabled,
+};
+
+inline fn inputMode2Glfw(mode: InputMode) c_int {
+    return switch (mode) {
+        .StickyKeys => c.GLFW_STICKY_KEYS,
+        .StickyMouseButtons => c.GLFW_STICKY_MOUSE_BUTTONS,
+        .LockKeyMods => c.GLFW_LOCK_KEY_MODS,
+    };
+}
+
+/// Set the clipboard content.
+///
+/// The possible error is needed
+/// to convert the slice to a
+/// null terminated C string.
+pub fn setClipboard(allocator: Allocator, str: []const u8) Allocator.Error!void {
+    const str_copy = utils.copy(
+        u8,
+        str,
+        try allocator.alloc(u8, str.len + 1),
+    );
+    defer allocator.free(str_copy);
+    str_copy[str.len] = 0;
+
+    c.glfwSetClipboardString(null, str_copy);
+}
+/// Query the clipboard content and allocate new memory for it.
+///
+/// The returned string should be freed by the caller.
+pub fn getClipboard(allocator: Allocator) Allocator.Error!?[]const u8 {
+    const str = c.glfwGetClipboardString(null) orelse return null;
+    const len: usize = @intCast(c.strlen(str));
+    return utils.copy(
+        u8,
+        str[0..len],
+        try allocator.alloc(u8, len),
+    );
+}
+
+/// The main data structure of GLFW.
+pub const Window = opaque {
     var current: ?*Window = null;
-    var windows: ?std.ArrayList(Window) = null;
-    allocator: Allocator,
-    ptr: *c.GLFWwindow,
-    title: [:0]const u8,
-    hint: WindowHint,
-    mouseCallback: ?MousePosCallback = null,
-    keyCallback: ?KeyCallback = null,
+    var windows: ?std.ArrayList(WindowInternal) = null;
+
+    fn toIntern(self: *Window) *WindowInternal {
+        return @ptrCast(@alignCast(self));
+    }
 
     fn mouseCallback(window: ?*c.GLFWwindow, x: f64, y: f64) callconv(.C) void {
-        const win = windowFromGlfw(window.?);
+        const win = windowFromGlfw(window.?).toIntern();
         if (win.mouseCallback) |f| {
-            f(win, x, y) catch |e| {
+            f(win.toExtern(), x, y) catch |e| {
+                pollErr = e;
+            };
+        }
+    }
+    fn buttonCallback(window: ?*c.GLFWwindow, button: c_int, action: c_int, mods: c_int) callconv(.C) void {
+        const win = windowFromGlfw(window.?).toIntern();
+        if (win.buttonCallback) |f| {
+            const kMods: Key.Mods = .{
+                .Shift = mods & c.GLFW_MOD_SHIFT != 0,
+                .Control = mods & c.GLFW_MOD_CONTROL != 0,
+                .Alt = mods & c.GLFW_MOD_ALT != 0,
+                .Super = mods & c.GLFW_MOD_SUPER != 0,
+                .CapsLock = mods & c.GLFW_MOD_CAPS_LOCK != 0,
+                .NumLock = mods & c.GLFW_MOD_NUM_LOCK != 0,
+            };
+            f(
+                win.toExtern(),
+                @bitCast(button),
+                switch (action) {
+                    c.GLFW_RELEASE => Key.Action.Released,
+                    c.GLFW_PRESS => Key.Action.Pressed,
+                    c.GLFW_REPEAT => Key.Action.Repeat,
+                    else => unreachable,
+                },
+                kMods,
+            ) catch |e| {
                 pollErr = e;
             };
         }
     }
     fn keyCallback(window: ?*c.GLFWwindow, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.C) void {
         _ = scancode;
-        const win = windowFromGlfw(window.?);
+        const win = windowFromGlfw(window.?).toIntern();
         if (win.keyCallback) |f| {
             const kMods: Key.Mods = .{
                 .Shift = mods & c.GLFW_MOD_SHIFT != 0,
@@ -241,7 +333,7 @@ pub const Window = struct {
                 .NumLock = mods & c.GLFW_MOD_NUM_LOCK != 0,
             };
             f(
-                win,
+                win.toExtern(),
                 switch (key) {
                     c.GLFW_KEY_SPACE => Key.Space,
                     c.GLFW_KEY_APOSTROPHE => Key.Apostrophe,
@@ -367,11 +459,56 @@ pub const Window = struct {
                 },
                 switch (action) {
                     c.GLFW_RELEASE => Key.Action.Released,
+                    c.GLFW_PRESS => Key.Action.Pressed,
                     c.GLFW_REPEAT => Key.Action.Repeat,
-                    else => Key.Action.Pressed,
+                    else => unreachable,
                 },
                 kMods,
             ) catch |e| {
+                pollErr = e;
+            };
+        }
+    }
+    fn charCallback(window: ?*c.GLFWwindow, char: c_uint) callconv(.C) void {
+        const win = windowFromGlfw(window.?).toIntern();
+        if (win.charCallback) |f| {
+            f(win.toExtern(), @bitCast(char)) catch |e| {
+                pollErr = e;
+            };
+        }
+    }
+    fn enterCallback(window: ?*c.GLFWwindow, entered: c_int) callconv(.C) void {
+        const win = windowFromGlfw(window.?).toIntern();
+        if (win.enterCallback) |f| {
+            f(win.toExtern(), entered == c.GLFW_TRUE) catch |e| {
+                pollErr = e;
+            };
+        }
+    }
+    fn scrollCallback(window: ?*c.GLFWwindow, x: f64, y: f64) callconv(.C) void {
+        const win = windowFromGlfw(window.?).toIntern();
+        if (win.scrollCallback) |f| {
+            f(win.toExtern(), x, y) catch |e| {
+                pollErr = e;
+            };
+        }
+    }
+    fn dropCallback(window: ?*c.GLFWwindow, pathCount: c_int, paths: [*c]const [*c]const u8) callconv(.C) void {
+        const win = windowFromGlfw(window.?).toIntern();
+        if (win.dropCallback) |f| {
+            const pathsSlice: [][]u8 = win.allocator.alloc([]u8, pathCount) catch |e| {
+                pollErr = e;
+                return;
+            };
+            defer win.allocator.free(pathsSlice);
+
+            for (0..pathCount) |i| {
+                const str = paths[i];
+                const len: usize = @intCast(c.strlen(str));
+                pathsSlice[i] = str[0..len];
+            }
+
+            f(win.toExtern(), pathsSlice) catch |e| {
                 pollErr = e;
             };
         }
@@ -380,10 +517,8 @@ pub const Window = struct {
     fn windowFromGlfw(window: *c.GLFWwindow) *Window {
         if (windows == null) @panic("No registered window");
         for (windows.?.items) |*item| {
-            if (item.ptr == window) return item;
+            if (item.ptr == window) return item.toExtern();
         }
-        terminate();
-        windows.?.deinit();
         @panic("Cannot find window");
     }
 
@@ -401,32 +536,39 @@ pub const Window = struct {
             return getError(errStr);
         errdefer c.glfwDestroyWindow(ptr);
         _ = c.glfwSetCursorPosCallback(ptr, &mouseCallback);
+        _ = c.glfwSetMouseButtonCallback(ptr, &buttonCallback);
         _ = c.glfwSetKeyCallback(ptr, &keyCallback);
-        const window = Window{
+        _ = c.glfwSetCharCallback(ptr, &charCallback);
+        _ = c.glfwSetCursorEnterCallback(ptr, &enterCallback);
+        _ = c.glfwSetScrollCallback(ptr, &scrollCallback);
+        _ = c.glfwSetDropCallback(ptr, &dropCallback);
+        const window = WindowInternal{
             .allocator = allocator,
             .ptr = ptr,
             .title = title_copy[0..title.len :0],
             .hint = hint,
         };
         if (windows == null)
-            windows = std.ArrayList(Window).init(allocator);
+            windows = std.ArrayList(WindowInternal).init(allocator);
         const winPtr = windows.?.addOne() catch return Error.OutOfMemory;
         winPtr.* = window;
         c.glfwMakeContextCurrent(ptr);
         c.glfwSwapInterval(@intFromBool(hint.vsync));
         if (current) |curr| curr.makeCurrentContext();
-        return winPtr;
+        return winPtr.toExtern();
     }
     pub fn destroy(self: *Window) void {
         if (windows == null)
             return;
+        const win = self.toIntern();
+
         const wArr = windows.?;
-        const allocator = self.allocator;
+        const allocator = win.allocator;
 
-        allocator.free(self.title);
-        c.glfwDestroyWindow(self.ptr);
+        allocator.free(win.title);
+        c.glfwDestroyWindow(win.ptr);
 
-        self.* = undefined;
+        win.* = undefined;
         if (wArr.items.len <= 1) {
             wArr.deinit();
             windows = null;
@@ -434,80 +576,107 @@ pub const Window = struct {
     }
 
     pub fn makeCurrentContext(self: *Window) void {
-        if (current == self)
+        if (self == current)
             return;
-        c.glfwMakeContextCurrent(self.ptr);
+        const win = self.toIntern();
+        c.glfwMakeContextCurrent(win.ptr);
         current = self;
+    }
+    pub fn isCurrentContext(self: *Window) bool {
+        return self == current;
+    }
+    pub fn getCurrentContext() ?*Window {
+        return current;
     }
 
     pub fn setVSync(self: *Window, vsync: bool) void {
-        self.hint.vsync = vsync;
-        if (current != self) c.glfwMakeContextCurrent(self.ptr);
+        const win = self.toIntern();
+        win.hint.vsync = vsync;
+        if (self != current) c.glfwMakeContextCurrent(win.ptr);
         c.glfwSwapInterval(@intFromBool(vsync));
-        if (current != self)
-            if (current) |curr| c.glfwMakeContextCurrent(curr.ptr);
+        if (self != current)
+            if (current) |curr| c.glfwMakeContextCurrent(toIntern(curr).ptr);
     }
 
     pub fn swapBuffers(self: *Window) void {
-        c.glfwSwapBuffers(self.ptr);
+        const win = self.toIntern();
+        c.glfwSwapBuffers(win.ptr);
     }
+
     pub fn shouldClose(self: *Window) bool {
-        return c.glfwWindowShouldClose(self.ptr) == c.GLFW_TRUE;
+        const win = self.toIntern();
+        return c.glfwWindowShouldClose(win.ptr) == c.GLFW_TRUE;
+    }
+    pub fn setShouldClose(self: *Window, value: bool) void {
+        const win = self.toIntern();
+        c.glfwSetWindowShouldClose(win.ptr, @intFromBool(value));
     }
 
     pub fn show(self: *Window) void {
-        c.glfwShowWindow(self.ptr);
-        self.hint.visible = true;
+        const win = self.toIntern();
+        c.glfwShowWindow(win.ptr);
+        win.hint.visible = true;
     }
     pub fn hide(self: *Window) void {
-        c.glfwHideWindow(self.ptr);
-        self.hint.visible = false;
+        const win = self.toIntern();
+        c.glfwHideWindow(win.ptr);
+        win.hint.visible = false;
     }
 
     pub fn getPosition(self: *Window, x: ?*u32, y: ?*u32) void {
-        c.glfwGetWindowPos(self.ptr, @ptrCast(x), @ptrCast(y));
+        const win = self.toIntern();
+        c.glfwGetWindowPos(win.ptr, @ptrCast(x), @ptrCast(y));
     }
     pub fn setPosition(self: *Window, x: u32, y: u32) void {
-        c.glfwSetWindowPos(self.ptr, @intCast(x), @intCast(y));
+        const win = self.toIntern();
+        c.glfwSetWindowPos(win.ptr, @intCast(x), @intCast(y));
     }
 
     pub fn getSize(self: *Window, w: ?*u32, h: ?*u32) void {
-        c.glfwGetWindowSize(self.ptr, @ptrCast(w), @ptrCast(h));
+        const win = self.toIntern();
+        c.glfwGetWindowSize(win.ptr, @ptrCast(w), @ptrCast(h));
     }
     pub fn setSize(self: *Window, w: u32, h: u32) void {
-        c.glfwSetWindowSize(self.ptr, @intCast(w), @intCast(h));
+        const win = self.toIntern();
+        c.glfwSetWindowSize(win.ptr, @intCast(w), @intCast(h));
     }
 
     pub fn getTitle(self: *Window) []const u8 {
-        return self.title;
+        const win = self.toIntern();
+        _ = win; // autofix
+        return self.toIntern().title;
     }
     pub fn setTitle(self: *Window, title: []const u8) Error!void {
-        if (title == self.title) return;
+        const win = self.toIntern();
+        if (title == win.title) return;
 
-        const allocator = self.allocator;
+        const allocator = win.allocator;
 
         const title_copy = utils.copy(
             u8,
             title,
-            self.allocator.alloc(u8, title.len + 1) catch return Error.OutOfMemory,
+            allocator.alloc(u8, title.len + 1) catch return Error.OutOfMemory,
         );
         title_copy[title.len] = 0;
 
-        c.glfwSetWindowTitle(self.ptr, title_copy[0..title.len :0]);
+        c.glfwSetWindowTitle(win.ptr, title_copy[0..title.len :0]);
 
-        allocator.free(self.title);
-        self.title = title_copy;
+        allocator.free(win.title);
+        win.title = title_copy;
     }
+
     pub fn setResizable(self: *Window, resiziable: bool, errStr: ?*[]const u8) Error!void {
-        const hint = &self.hint;
+        const win = self.toIntern();
+
+        const hint = &win.hint;
         hint.resizable = resiziable;
 
         windowHint(hint.*);
         c.glfwWindowHint(c.GLFW_VISIBLE, c.GLFW_FALSE);
         var width: u32 = 0;
         var height: u32 = 0;
-        self.getSize(&width, &height);
-        const ptr = c.glfwCreateWindow(@intCast(width), @intCast(height), self.title.ptr, null, null) orelse
+        win.getSize(&width, &height);
+        const ptr = c.glfwCreateWindow(@intCast(width), @intCast(height), win.title.ptr, null, null) orelse
             return getError(errStr);
         _ = c.glfwSetCursorPosCallback(ptr, mouseCallback);
         _ = c.glfwSetKeyCallback(ptr, keyCallback);
@@ -515,24 +684,358 @@ pub const Window = struct {
         var y: u32 = 0;
         self.getPosition(&x, &y);
         c.glfwSetWindowPos(ptr, @intCast(x), @intCast(y));
-        c.glfwDestroyWindow(self.ptr);
-        self.ptr = ptr;
+        c.glfwDestroyWindow(win.ptr);
+        win.ptr = ptr;
         self.show();
-        if (current == self)
+        if (self == current)
             self.makeCurrentContext();
     }
 
-    pub fn setMouseCallback(self: *Window, cb: MousePosCallback) void {
-        self.mouseCallback = cb;
+    pub fn setInputMode(self: *Window, mode: InputMode, value: bool) void {
+        const win = self.toIntern();
+        c.glfwSetInputMode(win.ptr, inputMode2Glfw(mode), @intFromBool(value));
     }
-    pub fn getMouseCallback(self: *Window) MousePosCallback {
-        return self.mouseCallback;
+    pub fn getInputMode(self: *Window, mode: InputMode) bool {
+        const win = self.toIntern();
+        return c.glfwGetInputMode(win.ptr, inputMode2Glfw(mode)) == c.GLFW_TRUE;
     }
 
-    pub fn setKeyCallback(self: *Window, cb: KeyCallback) void {
-        self.keyCallback = cb;
+    pub fn setCursorInputMode(self: *Window, value: CursorInputMode) void {
+        const win = self.toIntern();
+        c.glfwSetInputMode(win.ptr, c.GLFW_CURSOR, @intFromBool(value));
     }
-    pub fn getKeyCallback(self: *Window) KeyCallback {
-        return self.keyCallback;
+    pub fn getCursorInputMode(self: *Window) CursorInputMode {
+        const win = self.toIntern();
+        return switch (c.glfwGetInputMode(win.ptr, c.GLFW_CURSOR)) {
+            c.GLFW_CURSOR_NORMAL => .Normal,
+            c.GLFW_CURSOR_HIDDEN => .Hidden,
+            c.GLFW_CURSOR_DISABLED => .Disabled,
+            else => unreachable,
+        };
+    }
+
+    pub fn setCursor(self: *Window, cursor: Cursor) void {
+        c.glfwSetCursor(self.toIntern().ptr, cursor.toIntern().ptr);
+    }
+    pub fn setIcon(self: *Window, icon: Image) void {
+        const img = c.GLFWimage{
+            .width = @intCast(icon.width),
+            .height = @intCast(icon.height),
+            .pixels = @ptrCast(icon.pixels.ptr),
+        };
+        c.glfwSetWindowIcon(self.toIntern().ptr, 1, @ptrCast(&img));
+    }
+    pub fn setIcons(self: *Window, icons: []Image) Allocator.Error!void {
+        const allocator = self.toIntern().allocator;
+
+        const imgs = try allocator.alloc(c.GLFWimage, icons.len);
+        defer allocator.free(imgs);
+
+        for (icons, 0..) |icon, i| {
+            imgs[i] = .{
+                .width = @intCast(icon.width),
+                .height = @intCast(icon.height),
+                .pixels = @ptrCast(icon.pixels.ptr),
+            };
+        }
+
+        c.glfwSetWindowIcon(self.toIntern().ptr, icons.len, imgs);
+    }
+
+    pub fn getMousePos(self: *Window, x: ?*f64, y: ?*f64) void {
+        c.glfwGetCursorPos(self.toIntern().ptr, @ptrCast(&x), @ptrCast(&y));
+    }
+
+    pub fn getKey(self: *Window, key: Key) bool {
+        c.glfwGetKey(self.toIntern().ptr, switch (key) {
+            .Unknown => return false,
+            .Space => c.GLFW_KEY_SPACE,
+            .Apostrophe => c.GLFW_KEY_APOSTROPHE,
+            .Comma => c.GLFW_KEY_COMMA,
+            .Minus => c.GLFW_KEY_MINUS,
+            .Period => c.GLFW_KEY_PERIOD,
+            .Slash => c.GLFW_KEY_SLASH,
+            .@"0" => c.GLFW_KEY_0,
+            .@"0" => c.GLFW_KEY_1,
+            .@"1" => c.GLFW_KEY_2,
+            .@"2" => c.GLFW_KEY_3,
+            .@"3" => c.GLFW_KEY_4,
+            .@"3" => c.GLFW_KEY_5,
+            .@"4" => c.GLFW_KEY_6,
+            .@"5" => c.GLFW_KEY_7,
+            .@"6" => c.GLFW_KEY_8,
+            .@"7" => c.GLFW_KEY_9,
+            .Semicolon => c.GLFW_KEY_SEMICOLON,
+            .Equal => c.GLFW_KEY_EQUAL,
+            .A => c.GLFW_KEY_A,
+            .B => c.GLFW_KEY_B,
+            .C => c.GLFW_KEY_C,
+            .D => c.GLFW_KEY_D,
+            .E => c.GLFW_KEY_E,
+            .F => c.GLFW_KEY_F,
+            .G => c.GLFW_KEY_G,
+            .H => c.GLFW_KEY_H,
+            .I => c.GLFW_KEY_I,
+            .J => c.GLFW_KEY_J,
+            .K => c.GLFW_KEY_K,
+            .L => c.GLFW_KEY_L,
+            .M => c.GLFW_KEY_M,
+            .N => c.GLFW_KEY_N,
+            .O => c.GLFW_KEY_O,
+            .P => c.GLFW_KEY_P,
+            .Q => c.GLFW_KEY_Q,
+            .R => c.GLFW_KEY_R,
+            .S => c.GLFW_KEY_S,
+            .T => c.GLFW_KEY_T,
+            .U => c.GLFW_KEY_U,
+            .V => c.GLFW_KEY_V,
+            .W => c.GLFW_KEY_W,
+            .X => c.GLFW_KEY_X,
+            .Y => c.GLFW_KEY_Y,
+            .Z => c.GLFW_KEY_Z,
+            .LeftBracket => c.GLFW_KEY_LEFT_BRACKET,
+            .Backslash => c.GLFW_KEY_BACKSLASH,
+            .RightBracket => c.GLFW_KEY_RIGHT_BRACKET,
+            .GraveAccent => c.GLFW_KEY_GRAVE_ACCENT,
+            .World1 => c.GLFW_KEY_WORLD_1,
+            .World2 => c.GLFW_KEY_WORLD_2,
+            .Escape => c.GLFW_KEY_ESCAPE,
+            .Enter => c.GLFW_KEY_ENTER,
+            .Tab => c.GLFW_KEY_TAB,
+            .Backspace => c.GLFW_KEY_BACKSPACE,
+            .Insert => c.GLFW_KEY_INSERT,
+            .Delete => c.GLFW_KEY_DELETE,
+            .Right => c.GLFW_KEY_RIGHT,
+            .Left => c.GLFW_KEY_LEFT,
+            .Down => c.GLFW_KEY_DOWN,
+            .Up => c.GLFW_KEY_UP,
+            .PageUp => c.GLFW_KEY_PAGE_UP,
+            .PageDown => c.GLFW_KEY_PAGE_DOWN,
+            .Home => c.GLFW_KEY_HOME,
+            .End => c.GLFW_KEY_END,
+            .CapsLock => c.GLFW_KEY_CAPS_LOCK,
+            .ScrollLock => c.GLFW_KEY_SCROLL_LOCK,
+            .NumLock => c.GLFW_KEY_NUM_LOCK,
+            .PrintScreen => c.GLFW_KEY_PRINT_SCREEN,
+            .Pause => c.GLFW_KEY_PAUSE,
+            .F1 => c.GLFW_KEY_F1,
+            .F2 => c.GLFW_KEY_F2,
+            .F3 => c.GLFW_KEY_F3,
+            .F4 => c.GLFW_KEY_F4,
+            .F5 => c.GLFW_KEY_F5,
+            .F6 => c.GLFW_KEY_F6,
+            .F7 => c.GLFW_KEY_F7,
+            .F8 => c.GLFW_KEY_F8,
+            .F9 => c.GLFW_KEY_F9,
+            .F10 => c.GLFW_KEY_F10,
+            .F11 => c.GLFW_KEY_F11,
+            .F12 => c.GLFW_KEY_F12,
+            .F13 => c.GLFW_KEY_F13,
+            .F14 => c.GLFW_KEY_F14,
+            .F15 => c.GLFW_KEY_F15,
+            .F16 => c.GLFW_KEY_F16,
+            .F17 => c.GLFW_KEY_F17,
+            .F18 => c.GLFW_KEY_F18,
+            .F19 => c.GLFW_KEY_F19,
+            .F20 => c.GLFW_KEY_F20,
+            .F21 => c.GLFW_KEY_F21,
+            .F22 => c.GLFW_KEY_F22,
+            .F23 => c.GLFW_KEY_F23,
+            .F24 => c.GLFW_KEY_F24,
+            .F25 => c.GLFW_KEY_F25,
+            .Kp0 => c.GLFW_KEY_KP_0,
+            .Kp1 => c.GLFW_KEY_KP_1,
+            .Kp2 => c.GLFW_KEY_KP_2,
+            .Kp3 => c.GLFW_KEY_KP_3,
+            .Kp4 => c.GLFW_KEY_KP_4,
+            .Kp5 => c.GLFW_KEY_KP_5,
+            .Kp6 => c.GLFW_KEY_KP_6,
+            .Kp7 => c.GLFW_KEY_KP_7,
+            .Kp8 => c.GLFW_KEY_KP_8,
+            .Kp9 => c.GLFW_KEY_KP_9,
+            .KpDecimal => c.GLFW_KEY_KP_DECIMAL,
+            .KpDivide => c.GLFW_KEY_KP_DIVIDE,
+            .KpMultiply => c.GLFW_KEY_KP_MULTIPLY,
+            .KpSubtract => c.GLFW_KEY_KP_SUBTRACT,
+            .KpAdd => c.GLFW_KEY_KP_ADD,
+            .KpEnter => c.GLFW_KEY_KP_ENTER,
+            .KpEqual => c.GLFW_KEY_KP_EQUAL,
+            .LeftShift => c.GLFW_KEY_LEFT_SHIFT,
+            .LeftControl => c.GLFW_KEY_LEFT_CONTROL,
+            .LeftAlt => c.GLFW_KEY_LEFT_ALT,
+            .LeftSuper => c.GLFW_KEY_LEFT_SUPER,
+            .RightShift => c.GLFW_KEY_RIGHT_SHIFT,
+            .RightControl => c.GLFW_KEY_RIGHT_CONTROL,
+            .RightAlt => c.GLFW_KEY_RIGHT_ALT,
+            .RightSuper => c.GLFW_KEY_RIGHT_SUPER,
+            .Menu => c.GLFW_KEY_MENU,
+        });
+    }
+
+    // callbacks
+
+    pub fn setMouseCallback(self: *Window, cb: ?MousePosCallback) void {
+        self.toIntern().mouseCallback = cb;
+    }
+    pub fn getMouseCallback(self: *Window) ?MousePosCallback {
+        return self.toIntern().mouseCallback;
+    }
+
+    pub fn setButtonCallback(self: *Window, cb: ?ButtonCallback) void {
+        self.toIntern().buttonCallback = cb;
+    }
+    pub fn getButtonCallback(self: *Window) ?ButtonCallback {
+        return self.toIntern().buttonCallback;
+    }
+
+    pub fn setKeyCallback(self: *Window, cb: ?KeyCallback) void {
+        self.toIntern().keyCallback = cb;
+    }
+    pub fn getKeyCallback(self: *Window) ?KeyCallback {
+        return self.toIntern().keyCallback;
+    }
+
+    pub fn setCharCallback(self: *Window, cb: ?CharCallback) void {
+        self.toIntern().charCallback = cb;
+    }
+    pub fn getCharCallback(self: *Window) ?CharCallback {
+        return self.toIntern().charCallback;
+    }
+
+    pub fn setEnterCallback(self: *Window, cb: ?EnterCallback) void {
+        self.toIntern().enterCallback = cb;
+    }
+    pub fn getEnterCallback(self: *Window) ?EnterCallback {
+        return self.toIntern().enterCallback;
+    }
+
+    pub fn setScrollCallback(self: *Window, cb: ?ScrollCallback) void {
+        self.toIntern().scrollCallback = cb;
+    }
+    pub fn getScrollCallback(self: *Window) ?ScrollCallback {
+        return self.toIntern().scrollCallback;
+    }
+
+    pub fn setDropCallback(self: *Window, cb: ?DropCallback) void {
+        self.toIntern().dropCallback = cb;
+    }
+    pub fn getDropCallback(self: *Window) ?DropCallback {
+        const win = self.toIntern();
+        _ = win; // autofix
+        return self.toIntern().dropCallback;
+    }
+};
+
+const WindowInternal = struct {
+    allocator: Allocator,
+    ptr: *c.GLFWwindow,
+    title: [:0]const u8,
+    hint: WindowHint,
+
+    mouseCallback: ?MousePosCallback = null,
+    buttonCallback: ?ButtonCallback = null,
+    keyCallback: ?KeyCallback = null,
+    charCallback: ?CharCallback = null,
+    enterCallback: ?EnterCallback = null,
+    scrollCallback: ?ScrollCallback = null,
+    dropCallback: ?DropCallback = null,
+
+    pub fn toExtern(self: *WindowInternal) *Window {
+        return @ptrCast(@alignCast(self));
+    }
+};
+
+pub const Color = struct {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+};
+
+pub const Image = struct {
+    width: u32,
+    height: u32,
+    pixels: []Color,
+};
+
+pub const StandardCursor = enum {
+    Arrow,
+    IBeam,
+    Crosshair,
+    Hand,
+    HResize,
+    VResize,
+};
+
+inline fn stdCur2Glfw(cursor: StandardCursor) c_int {
+    return switch (cursor) {
+        .Arrow => c.GLFW_ARROW_CURSOR,
+        .IBeam => c.GLFW_IBEAM_CURSOR,
+        .Crosshair => c.GLFW_CROSSHAIR_CURSOR,
+        .Hand => c.GLFW_HAND_CURSOR,
+        .HResize => c.GLFW_HRESIZE_CURSOR,
+        .VResize => c.GLFW_VRESIZE_CURSOR,
+    };
+}
+
+pub const Cursor = opaque {
+    fn toIntern(self: *Cursor) *CursorInternal {
+        return @ptrCast(@alignCast(self));
+    }
+
+    pub fn createStandard(allocator: Allocator, cursor: StandardCursor, errStr: ?*[]const u8) Error!*Cursor {
+        const ptr = c.glfwCreateStandardCursor(stdCur2Glfw(cursor)) orelse
+            return getError(errStr);
+        errdefer c.glfwDestroyCursor(ptr);
+
+        const cur = CursorInternal{
+            .allocator = allocator,
+            .ptr = ptr,
+        };
+
+        const cursorPtr = allocator.create(CursorInternal) catch return Error.OutOfMemory;
+        errdefer allocator.destroy(cursorPtr);
+
+        cursorPtr = cur;
+
+        return cursorPtr.toExtern();
+    }
+    pub fn create(allocator: Allocator, image: Image, errStr: ?*[]const u8) Error!*Cursor {
+        const img = c.GLFWimage{
+            .width = @intCast(image.width),
+            .height = @intCast(image.height),
+            .pixels = @ptrCast(image.pixels.ptr),
+        };
+        const ptr = c.glfwCreateCursor(img, 0, 0) orelse
+            return getError(errStr);
+        errdefer c.glfwDestroyCursor(ptr);
+
+        const cursor = CursorInternal{
+            .allocator = allocator,
+            .ptr = ptr,
+        };
+
+        const cursorPtr = allocator.create(CursorInternal) catch return Error.OutOfMemory;
+        errdefer allocator.destroy(cursorPtr);
+
+        cursorPtr = cursor;
+
+        return cursorPtr.toExtern();
+    }
+    pub fn destroy(self: *Cursor) void {
+        const cur = self.toIntern();
+
+        c.glfwDestroyCursor(cur.ptr);
+
+        cur.allocator.destroy(cur);
+    }
+};
+
+const CursorInternal = struct {
+    allocator: Allocator,
+    ptr: *c.GLFWcursor,
+
+    pub fn toExtern(self: *CursorInternal) *Cursor {
+        return @ptrCast(@alignCast(self));
     }
 };
