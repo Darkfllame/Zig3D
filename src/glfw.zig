@@ -496,13 +496,13 @@ pub const Window = opaque {
     fn dropCallback(window: ?*c.GLFWwindow, pathCount: c_int, paths: [*c]const [*c]const u8) callconv(.C) void {
         const win = windowFromGlfw(window.?).toIntern();
         if (win.dropCallback) |f| {
-            const pathsSlice: [][]u8 = win.allocator.alloc([]u8, pathCount) catch |e| {
+            const pathsSlice: [][]const u8 = win.allocator.alloc([]u8, @intCast(pathCount)) catch |e| {
                 pollErr = e;
                 return;
             };
             defer win.allocator.free(pathsSlice);
 
-            for (0..pathCount) |i| {
+            for (0..@intCast(pathCount)) |i| {
                 const str = paths[i];
                 const len: usize = @intCast(c.strlen(str));
                 pathsSlice[i] = str[0..len];

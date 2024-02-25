@@ -21,8 +21,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
         .use_system_zlib = false,
-        .enable_brotly = true,
+        .enable_brotli = true,
     });
+    _ = freetype; // autofix
 
     const KeyModule = b.createModule(.{
         .root_source_file = .{ .path = "src/Key.zig" },
@@ -36,18 +37,18 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
-    const freetypeModule = b.addModule("freetype", .{
-        .root_source_file = .{ .path = "src/freetype.zig" },
-        .optimize = optimize,
-        .target = target,
-        .imports = &.{
-            .{
-                .name = "utils",
-                .module = utilsModule,
-            },
-        },
-    });
-    freetypeModule.linkLibrary(freetype.artifact("freetype"));
+    // const freetypeModule = b.addModule("freetype", .{
+    //     .root_source_file = .{ .path = "src/freetype.zig" },
+    //     .optimize = optimize,
+    //     .target = target,
+    //     .imports = &.{
+    //         .{
+    //             .name = "utils",
+    //             .module = utilsModule,
+    //         },
+    //     },
+    // });
+    // freetypeModule.linkLibrary(freetype.artifact("freetype"));
 
     const glfwModule = b.addModule("glfw", .{
         .root_source_file = .{ .path = "src/glfw.zig" },
@@ -128,10 +129,10 @@ pub fn build(b: *std.Build) void {
                 .name = "stb",
                 .module = stbModule,
             },
-            .{
-                .name = "freetype",
-                .module = freetypeModule,
-            },
+            // .{
+            //     .name = "freetype",
+            //     .module = freetypeModule,
+            // },
         },
     });
 

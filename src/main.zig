@@ -46,7 +46,7 @@ pub fn main() !void {
     };
     try println("Using GLFW version {d}.{d}.{d}", glfw.getVersion());
 
-    var window = glfw.Window.create(allocator, "Totally Minecraft", 800, 600, .{
+    var window = glfw.Window.create(allocator, "Zig3D Demo Window", 800, 600, .{
         .visible = false,
         .resizable = false,
     }, &errStr) catch |e| {
