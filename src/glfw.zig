@@ -575,6 +575,10 @@ pub const Window = opaque {
         }
     }
 
+    pub fn getAllocator(self: *Window) Allocator {
+        return self.toIntern().allocator;
+    }
+
     pub fn makeCurrentContext(self: *Window) void {
         if (self == current)
             return;
