@@ -38,15 +38,20 @@ pub fn slice2ZSent(allocator: Allocator, slice: []const u8) Allocator.Error![:0]
 }
 
 pub fn readFile(allocator: Allocator, filename: []const u8) (File.ReadError || File.OpenError || Allocator.Error || fs.SelfExePathError)![]u8 {
+    const SEPARATOR = comptime if (@import("builtin").os.tag == .windows) "\\" else "/";
+
     const file = fs.cwd().openFile(filename, .{}) catch |e| blk: {
         if (e == File.OpenError.FileNotFound) {
             const exeDirPath = try fs.selfExePathAlloc(allocator);
             defer allocator.free(exeDirPath);
 
-            break :blk fs.openFileAbsolute(try std.mem.join(allocator, "", &.{
+            const pathFromExe = try std.mem.join(allocator, SEPARATOR, &.{
                 exeDirPath,
                 filename,
-            }), .{}) catch |e2| return e2;
+            });
+            defer allocator.free(pathFromExe);
+
+            break :blk fs.openFileAbsolute(pathFromExe, .{}) catch |e2| return e2;
         }
         return e;
     };
