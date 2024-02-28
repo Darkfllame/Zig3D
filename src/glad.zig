@@ -70,6 +70,13 @@ fn errFromC(err: c.GLenum) Error {
     };
 }
 
+pub fn checkError() Error!void {
+    return switch (c.glGetError()) {
+        c.GL_NO_ERROR => {},
+        else => |e| errFromC(e),
+    };
+}
+
 /// if loader is null it will use the builtin glad loader
 /// otherwise it will use the loader.
 ///
