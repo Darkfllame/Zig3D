@@ -753,9 +753,11 @@ pub const Window = opaque {
     pub fn getMousePos(self: *Window, x: ?*f64, y: ?*f64) void {
         c.glfwGetCursorPos(self.toIntern().ptr, @ptrCast(&x), @ptrCast(&y));
     }
-
+    pub fn getMouseButton(self: *Window, button: u32) bool {
+        return c.glfwGetMouseButton(self.toIntern().ptr, @intCast(button)) == c.GLFW_PRESS;
+    }
     pub fn getKey(self: *Window, key: Key) bool {
-        c.glfwGetKey(self.toIntern().ptr, switch (key) {
+        return c.glfwGetKey(self.toIntern().ptr, switch (key) {
             .Unknown => return false,
             .Space => c.GLFW_KEY_SPACE,
             .Apostrophe => c.GLFW_KEY_APOSTROPHE,
@@ -764,15 +766,15 @@ pub const Window = opaque {
             .Period => c.GLFW_KEY_PERIOD,
             .Slash => c.GLFW_KEY_SLASH,
             .@"0" => c.GLFW_KEY_0,
-            .@"0" => c.GLFW_KEY_1,
-            .@"1" => c.GLFW_KEY_2,
-            .@"2" => c.GLFW_KEY_3,
-            .@"3" => c.GLFW_KEY_4,
-            .@"3" => c.GLFW_KEY_5,
-            .@"4" => c.GLFW_KEY_6,
-            .@"5" => c.GLFW_KEY_7,
-            .@"6" => c.GLFW_KEY_8,
-            .@"7" => c.GLFW_KEY_9,
+            .@"1" => c.GLFW_KEY_1,
+            .@"2" => c.GLFW_KEY_2,
+            .@"3" => c.GLFW_KEY_3,
+            .@"4" => c.GLFW_KEY_4,
+            .@"5" => c.GLFW_KEY_5,
+            .@"6" => c.GLFW_KEY_6,
+            .@"7" => c.GLFW_KEY_7,
+            .@"8" => c.GLFW_KEY_8,
+            .@"9" => c.GLFW_KEY_9,
             .Semicolon => c.GLFW_KEY_SEMICOLON,
             .Equal => c.GLFW_KEY_EQUAL,
             .A => c.GLFW_KEY_A,
@@ -877,7 +879,7 @@ pub const Window = opaque {
             .RightAlt => c.GLFW_KEY_RIGHT_ALT,
             .RightSuper => c.GLFW_KEY_RIGHT_SUPER,
             .Menu => c.GLFW_KEY_MENU,
-        });
+        }) == c.GLFW_PRESS;
     }
 
     // callbacks
@@ -953,11 +955,15 @@ const WindowInternal = struct {
     }
 };
 
-pub const Color = struct {
+pub const Color = packed struct {
     r: u8,
     g: u8,
     b: u8,
     a: u8,
+
+    comptime {
+        if (@sizeOf(Color) != 4) @compileError("Color is not 4 bytes somehow");
+    }
 };
 
 pub const Image = struct {

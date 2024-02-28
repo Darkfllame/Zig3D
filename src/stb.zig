@@ -1,5 +1,6 @@
 const std = @import("std");
 const utils = @import("utils");
+const glfw = @import("glfw");
 const c = @cImport({
     @cDefine("STB_IMAGE_IMPLEMENTATION", "");
     @cInclude("STB/stb_image.h");
@@ -40,5 +41,16 @@ pub const Image = struct {
     pub fn delete(self: *Image) void {
         c.stbi_image_free(self.pixels);
         self.* = undefined;
+    }
+
+    /// returns null only if self.pixels.len is not a multiple
+    /// of 4.
+    pub fn toGlfw(self: Image) ?glfw.Image {
+        if (self.pixels.len % 4 != 0) return null;
+        return .{
+            .width = self.width,
+            .height = self.height,
+            .pixels = @ptrCast(self.pixels),
+        };
     }
 };

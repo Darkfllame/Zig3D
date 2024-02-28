@@ -1,6 +1,6 @@
 # Zig3D
 
-This project uses a [glfw](https://github.com/hexops/glfw) and [freetype](https://github.com/hexops/freetype) from the Mach Engine dev, [GLAD](https://glad.dav1d.de) and the [STB library](https://github.com/nothings/stb).
+This project uses a [glfw](https://github.com/hexops/glfw) from the Mach Engine dev, [GLAD](https://glad.dav1d.de) and the [STB library](https://github.com/nothings/stb).
 
 ## How to use
 
