@@ -1,6 +1,7 @@
 const std = @import("std");
 const utils = @import("utils");
 const zlm = @import("zlm");
+const zlmd = @import("zlm").SpecializeOn(f64);
 const c = @cImport({
     @cInclude("GLAD/glad.h");
 });
@@ -8,18 +9,18 @@ const c = @cImport({
 const Allocator = std.mem.Allocator;
 
 pub const Vec2f = zlm.Vec2;
-pub const Vec2d = zlm.Vec2;
+pub const Vec2d = zlmd.Vec2;
 pub const Vec3f = zlm.Vec3;
-pub const Vec3d = zlm.Vec3;
+pub const Vec3d = zlmd.Vec3;
 pub const Vec4f = zlm.Vec4;
-pub const Vec4d = zlm.Vec4;
+pub const Vec4d = zlmd.Vec4;
 
 pub const Mat2f = zlm.Mat2;
-pub const Mat2d = zlm.Mat2;
+pub const Mat2d = zlmd.Mat2;
 pub const Mat3f = zlm.Mat3;
-pub const Mat3d = zlm.Mat3;
+pub const Mat3d = zlmd.Mat3;
 pub const Mat4f = zlm.Mat4;
-pub const Mat4d = zlm.Mat4;
+pub const Mat4d = zlmd.Mat4;
 
 pub const GladLoadProc = *const fn ([*c]const u8) callconv(.C) ?*anyopaque;
 pub const DebugProc = *const fn (source: DebugSource, kind: DebugType, id: u32, severity: DebugSeverity, message: []const u8, userData: ?*anyopaque) void;
