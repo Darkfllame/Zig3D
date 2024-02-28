@@ -15,15 +15,7 @@ pub fn build(b: *std.Build) void {
         .metal = true,
     });
 
-    // freetype is on it's way
-
-    const freetype = b.dependency("freetype", .{
-        .optimize = optimize,
-        .target = target,
-        .use_system_zlib = false,
-        .enable_brotli = true,
-    });
-    _ = freetype; // autofix
+    const zlm = b.dependency("zlm", .{});
 
     const KeyModule = b.createModule(.{
         .root_source_file = .{ .path = "src/Key.zig" },
@@ -36,19 +28,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
     });
-
-    // const freetypeModule = b.addModule("freetype", .{
-    //     .root_source_file = .{ .path = "src/freetype.zig" },
-    //     .optimize = optimize,
-    //     .target = target,
-    //     .imports = &.{
-    //         .{
-    //             .name = "utils",
-    //             .module = utilsModule,
-    //         },
-    //     },
-    // });
-    // freetypeModule.linkLibrary(freetype.artifact("freetype"));
 
     const glfwModule = b.addModule("glfw", .{
         .root_source_file = .{ .path = "src/glfw.zig" },
@@ -68,12 +47,6 @@ pub fn build(b: *std.Build) void {
     });
     glfwModule.linkLibrary(glfw.artifact("glfw"));
 
-    const ziglmModule = b.addModule("ziglm", .{
-        .root_source_file = .{ .path = "src/ziglm/ziglm.zig" },
-        .optimize = optimize,
-        .target = target,
-    });
-
     const gladModule = b.addModule("glad", .{
         .root_source_file = .{ .path = "src/glad.zig" },
         .link_libc = true,
@@ -85,8 +58,8 @@ pub fn build(b: *std.Build) void {
                 .module = utilsModule,
             },
             .{
-                .name = "ziglm",
-                .module = ziglmModule,
+                .name = "zlm",
+                .module = zlm.module("zlm"),
             },
         },
     });
@@ -122,17 +95,13 @@ pub fn build(b: *std.Build) void {
                 .module = utilsModule,
             },
             .{
-                .name = "ziglm",
-                .module = ziglmModule,
+                .name = "zlm",
+                .module = zlm.module("zlm"),
             },
             .{
                 .name = "stb",
                 .module = stbModule,
             },
-            // .{
-            //     .name = "freetype",
-            //     .module = freetypeModule,
-            // },
         },
     });
 

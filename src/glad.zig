@@ -1,25 +1,25 @@
 const std = @import("std");
 const utils = @import("utils");
-const ziglm = @import("ziglm");
+const zlm = @import("zlm");
 const c = @cImport({
     @cInclude("GLAD/glad.h");
 });
 
 const Allocator = std.mem.Allocator;
 
-pub const Vec2f = ziglm.Vec2(f32);
-pub const Vec2d = ziglm.Vec2(f64);
-pub const Vec3f = ziglm.Vec3(f32);
-pub const Vec3d = ziglm.Vec3(f64);
-pub const Vec4f = ziglm.Vec4(f32);
-pub const Vec4d = ziglm.Vec4(f64);
+pub const Vec2f = zlm.Vec2;
+pub const Vec2d = zlm.Vec2;
+pub const Vec3f = zlm.Vec3;
+pub const Vec3d = zlm.Vec3;
+pub const Vec4f = zlm.Vec4;
+pub const Vec4d = zlm.Vec4;
 
-pub const Mat2f = ziglm.Mat2(f32);
-pub const Mat2d = ziglm.Mat2(f64);
-pub const Mat3f = ziglm.Mat3(f32);
-pub const Mat3d = ziglm.Mat3(f64);
-pub const Mat4f = ziglm.Mat4(f32);
-pub const Mat4d = ziglm.Mat4(f64);
+pub const Mat2f = zlm.Mat2;
+pub const Mat2d = zlm.Mat2;
+pub const Mat3f = zlm.Mat3;
+pub const Mat3d = zlm.Mat3;
+pub const Mat4f = zlm.Mat4;
+pub const Mat4d = zlm.Mat4;
 
 pub const GladLoadProc = *const fn ([*c]const u8) callconv(.C) ?*anyopaque;
 pub const DebugProc = *const fn (source: DebugSource, kind: DebugType, id: u32, severity: DebugSeverity, message: []const u8, userData: ?*anyopaque) void;
@@ -707,12 +707,42 @@ pub const ShaderProgram = struct {
                     Vec3d => c.glUniform3d(@intCast(location), value.x, value.y, value.z),
                     Vec4f => c.glUniform4f(@intCast(location), value.x, value.y, value.z, value.w),
                     Vec4d => c.glUniform4d(@intCast(location), value.x, value.y, value.z, value.w),
-                    Mat2f => c.glUniformMatrix2fv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.cols)),
-                    Mat2d => c.glUniformMatrix2dv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.cols)),
-                    Mat3f => c.glUniformMatrix3fv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.cols)),
-                    Mat3d => c.glUniformMatrix3dv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.cols)),
-                    Mat4f => c.glUniformMatrix4fv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.cols)),
-                    Mat4d => c.glUniformMatrix4dv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.cols)),
+                    Mat2f => c.glUniformMatrix2fv(@intCast(location), 1, @intFromBool(false), &[4]f32{
+                        value.fields[0][0],
+                        value.fields[0][1],
+                        value.fields[1][0],
+                        value.fields[1][1],
+                    }),
+                    Mat2d => c.glUniformMatrix2dv(@intCast(location), 1, @intFromBool(false), &[4]f64{
+                        value.fields[0][0],
+                        value.fields[0][1],
+                        value.fields[1][0],
+                        value.fields[1][1],
+                    }),
+                    Mat3f => c.glUniformMatrix3fv(@intCast(location), 1, @intFromBool(false), &[9]f32{
+                        value.fields[0][0],
+                        value.fields[0][1],
+                        value.fields[0][2],
+                        value.fields[1][0],
+                        value.fields[1][1],
+                        value.fields[1][2],
+                        value.fields[2][0],
+                        value.fields[2][1],
+                        value.fields[2][2],
+                    }),
+                    Mat3d => c.glUniformMatrix3dv(@intCast(location), 1, @intFromBool(false), &[9]f64{
+                        value.fields[0][0],
+                        value.fields[0][1],
+                        value.fields[0][2],
+                        value.fields[1][0],
+                        value.fields[1][1],
+                        value.fields[1][2],
+                        value.fields[2][0],
+                        value.fields[2][1],
+                        value.fields[2][2],
+                    }),
+                    Mat4f => c.glUniformMatrix4fv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.transpose().fields)),
+                    Mat4d => c.glUniformMatrix4dv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.transpose().fields)),
                     else => @compileError("Cannot set uniform with type " ++ T),
                 }
             },
