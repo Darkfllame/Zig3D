@@ -706,7 +706,11 @@ pub const Window = opaque {
 
     pub fn setCursorInputMode(self: *Window, value: CursorInputMode) void {
         const win = self.toIntern();
-        c.glfwSetInputMode(win.ptr, c.GLFW_CURSOR, @intFromBool(value));
+        c.glfwSetInputMode(win.ptr, c.GLFW_CURSOR, switch (value) {
+            .Normal => c.GLFW_CURSOR_NORMAL,
+            .Hidden => c.GLFW_CURSOR_HIDDEN,
+            .Disabled => c.GLFW_CURSOR_DISABLED,
+        });
     }
     pub fn getCursorInputMode(self: *Window) CursorInputMode {
         const win = self.toIntern();
