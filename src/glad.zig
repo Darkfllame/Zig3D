@@ -691,7 +691,7 @@ pub const ShaderProgram = struct {
 
     pub fn uniformLocation(self: ShaderProgram, name: [:0]const u8) u32 {
         const loc = c.glGetUniformLocation(@intCast(self.id), @ptrCast(name.ptr));
-        return @intCast(loc);
+        return @bitCast(loc);
     }
     pub fn setUniformLoc(self: ShaderProgram, location: u32, value: anytype) void {
         _ = self;
