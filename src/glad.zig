@@ -691,10 +691,13 @@ pub const ShaderProgram = struct {
 
     pub fn uniformLocation(self: ShaderProgram, name: [:0]const u8) u32 {
         const loc = c.glGetUniformLocation(@intCast(self.id), @ptrCast(name.ptr));
+        if (loc == -1) return @truncate(-1);
         return @intCast(loc);
     }
     pub fn setUniformLoc(self: ShaderProgram, location: u32, value: anytype) void {
         _ = self;
+
+        if (location == @as(u32, @truncate(-1))) return;
 
         const T = @TypeOf(value);
         const tinfo = @typeInfo(T);
