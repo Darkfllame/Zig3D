@@ -8,11 +8,12 @@ To use this you just have to add a dependency in your `build.zig.zon` file:
 ```zig
 .dependencies = .{
   .zig3d = .{
-    .url = "https://github.com/Darkfllame/Zig3D/archive/<commit>.tag.gz",
+    .url = "https://github.com/Darkfllame/Zig3D/archive/9d45fc49b6ae8df17610efe21dc008eb23a9e3b7.tar.gz",
+    .hash = "1220ecef10039f71dfdbe4c5bf04b7fce4ce40c56351040e850d9f1f79b74b613e71",
   }
 }
 ```
-You can get the hash with the command `zig fetch https://github.com/Darkfllame/Zig3D/archive/<commit>.tag.gz` or when compiling.
+For the latest update.
 
 After adding the dependency, you'll add:
 ```zig
