@@ -12,8 +12,9 @@ const Vec2f = glad.Vec2f;
 const Key = glfw.Key;
 const Vertex = graphics.Vertex;
 const Mesh = graphics.Mesh;
+const MeshBatch = graphics.MeshBatch;
 
-fn autoError(e: anytype, additionalMessage: ?[]const u8, errStr: ?[]const u8) anyerror {
+fn autoError(e: anytype, additionalMessage: ?[]const u8, errStr: ?[]const u8) anyerror!void {
     if (@typeInfo(@TypeOf(e)) != .ErrorSet) @compileError("'e' MUST be an error");
     try if (errStr) |es|
         if (additionalMessage) |mess|
@@ -36,7 +37,7 @@ fn autoError(e: anytype, additionalMessage: ?[]const u8, errStr: ?[]const u8) an
         println("{s} Error", .{
             @errorName(e),
         });
-    return e;
+    return if (@import("builtin").mode == .Debug) e else {};
 }
 
 const triangleVertices: []const Vertex = &.{
@@ -115,11 +116,13 @@ fn main2(allocator: std.mem.Allocator, errMess: *[]const u8, errStr: *[]const u8
     };
     try println("Using OpenGL version {d}.{d}", glVersion);
 
-    var m = try (Mesh{
+    var mbatch = MeshBatch.init(allocator);
+    defer mbatch.deinit();
+
+    try mbatch.addMesh(.{
         .vertices = @constCast(triangleVertices),
         .indices = @constCast(triangleIndices),
-    }).generate();
-    defer m.deinit();
+    });
 
     var program = glad.ShaderProgram.create();
     defer program.destroy();
@@ -160,7 +163,7 @@ fn main2(allocator: std.mem.Allocator, errMess: *[]const u8, errStr: *[]const u8
     window.show();
     while (!window.shouldClose()) {
         glfw.pollEvents() catch |e| {
-            return autoError(e, "Error during polling events", null);
+            return autoError(e, "Error during events polling", null);
         };
         window.getSize(&winW, &winH);
 
@@ -171,9 +174,7 @@ fn main2(allocator: std.mem.Allocator, errMess: *[]const u8, errStr: *[]const u8
 
         program.useProgram();
 
-        m.vao.bind();
-        glad.drawElements(.Triangles, triangleIndices.len, u32, null);
-        glad.VertexArray.unbindAny();
+        try mbatch.draw();
 
         window.swapBuffers();
     }

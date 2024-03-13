@@ -10,7 +10,8 @@ comptime {
     _ = glfw;
     _ = glad;
     _ = stb;
-    _ = zlm;
     _ = freetype;
+    _ = zlm;
+    _ = graphics;
     _ = @This();
 }

@@ -83,7 +83,7 @@ pub fn checkError() Error!void {
 /// if loader is null it will use the builtin glad loader
 /// otherwise it will use the loader.
 ///
-/// I recommend using glfw.getProcAddress for loader.
+/// glfw.getProcAddress is recommended for the loader function.
 pub fn init(loader: ?GladLoadProc) Error!Version {
     const status = if (loader != null) c.gladLoadGLLoader(loader) else c.gladLoadGL();
     if (status == 0)
@@ -803,12 +803,12 @@ pub const ShaderProgram = struct {
                     Vec3d => c.glUniform3d(@intCast(location), value.x, value.y, value.z),
                     Vec4f => c.glUniform4f(@intCast(location), value.x, value.y, value.z, value.w),
                     Vec4d => c.glUniform4d(@intCast(location), value.x, value.y, value.z, value.w),
-                    Mat2f => c.glUniformMatrix2fv(@intCast(location), 1, @intFromBool(true), @ptrCast(&value.fields)),
-                    Mat2d => c.glUniformMatrix2dv(@intCast(location), 1, @intFromBool(true), @ptrCast(&value.fields)),
-                    Mat3f => c.glUniformMatrix3fv(@intCast(location), 1, @intFromBool(true), @ptrCast(&value.fields)),
-                    Mat3d => c.glUniformMatrix3dv(@intCast(location), 1, @intFromBool(true), @ptrCast(&value.fields)),
-                    Mat4f => c.glUniformMatrix4fv(@intCast(location), 1, @intFromBool(true), @ptrCast(&value.fields)),
-                    Mat4d => c.glUniformMatrix4dv(@intCast(location), 1, @intFromBool(true), @ptrCast(&value.fields)),
+                    Mat2f => c.glUniformMatrix2fv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.fields)),
+                    Mat2d => c.glUniformMatrix2dv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.fields)),
+                    Mat3f => c.glUniformMatrix3fv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.fields)),
+                    Mat3d => c.glUniformMatrix3dv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.fields)),
+                    Mat4f => c.glUniformMatrix4fv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.fields)),
+                    Mat4d => c.glUniformMatrix4dv(@intCast(location), 1, @intFromBool(false), @ptrCast(&value.fields)),
                     else => @compileError("Cannot set uniform with type " ++ T),
                 }
             },

@@ -1,6 +1,6 @@
 //! The freetype api is going everywhere when touching FT_Face, so i'm kinda lazy.
 //! So I only give you some help with error handling, giving the 'errFromC' function.
-//! You can use it by doing: try ft.errFromC(fr.<some_freetype_function>()).
+//! You can use it by doing: try ft.errFromC(ft.`some_freetype_function`()).
 const c = @cImport({
     @cInclude("freetype/freetype.h");
     @cInclude("ft2build.h");

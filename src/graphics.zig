@@ -1,11 +1,10 @@
 const std = @import("std");
 const glad = @import("glad");
+const utils = @import("utils");
 
 const ArrayList = std.ArrayList;
 
 const Allocator = std.mem.Allocator;
-
-pub const Error = error{};
 
 pub const Vertex = struct {
     pub const FLOATS_PER_VERTEX = @sizeOf(Vertex) / @sizeOf(f32);
@@ -56,6 +55,32 @@ pub const Mesh = struct {
     vertices: []Vertex = &.{},
     indices: []u32 = &.{},
 
+    pub fn deinit(self: *Mesh, allocator: Allocator) void {
+        allocator.free(self.vertices);
+        allocator.free(self.indices);
+        self.* = undefined;
+    }
+
+    pub fn clone(self: *const Mesh, allocator: Allocator) Allocator.Error!Mesh {
+        const verticesClone = utils.copy(
+            Vertex,
+            self.vertices,
+            try allocator.alloc(Vertex, self.vertices.len),
+        );
+        errdefer allocator.free(verticesClone);
+        const indicesClone = utils.copy(
+            u32,
+            self.indices,
+            try allocator.alloc(u32, self.indices.len),
+        );
+        errdefer allocator.free(indicesClone);
+
+        return .{
+            .vertices = verticesClone,
+            .indices = indicesClone,
+        };
+    }
+
     pub fn generate(self: *const Mesh) glad.Error!GLMesh {
         const vao = glad.VertexArray.create();
         const buffers = glad.Buffer.createBuffers(2);
@@ -87,8 +112,16 @@ pub const Mesh = struct {
     }
 };
 
+/// A data-structure responssible for handling a mesh batch.
 pub const MeshBatch = struct {
+    /// The allocation used for that batch, DO NOT CHANGE
     allocator: Allocator,
+    /// And internal state to know if the mesh has changed or not, DO NOT CHANGE
+    changed: bool = true,
+    /// The last generated mesh, if you want to get it or generate it, use .pack(), do not change it
+    lastGeneratedMesh: ?Mesh = null,
+    indexCount: u32 = 0,
+    /// The internal mesh buferr, god dammit, do not change either
     meshes: ArrayList(Mesh),
 
     pub fn init(allocator: Allocator) MeshBatch {
@@ -98,11 +131,30 @@ pub const MeshBatch = struct {
         };
     }
     pub fn deinit(self: *MeshBatch) void {
+        self.empty();
         self.meshes.deinit();
         self.* = undefined;
     }
 
-    pub fn pack(self: *const MeshBatch) Allocator.Error!Mesh {
+    pub fn addMesh(self: *MeshBatch, m: Mesh) Allocator.Error!void {
+        var mclone = try m.clone(self.allocator);
+        errdefer mclone.deinit(self.allocator);
+        try self.meshes.append(mclone);
+        self.changed = true;
+    }
+    pub fn addMeshes(self: *MeshBatch, ms: []Mesh) Allocator.Error!void {
+        for (ms) |m| try self.addMesh(m);
+    }
+    pub fn empty(self: *MeshBatch) void {
+        for (self.meshes.items) |*m| m.deinit(self.allocator);
+        if (self.lastGeneratedMesh) |*m| m.deinit(self.allocator);
+        self.changed = true;
+    }
+
+    pub fn pack(self: *MeshBatch) Allocator.Error!Mesh {
+        if (!self.changed) return self.lastGeneratedMesh.?;
+        if (self.lastGeneratedMesh) |*m| m.deinit(self.allocator);
+
         const allocator = self.allocator;
         const meshes = self.meshes.items;
 
@@ -114,11 +166,11 @@ pub const MeshBatch = struct {
         }
 
         const vertices = try allocator.alloc(Vertex, vertexCount);
-        defer allocator.free(vertices);
+        errdefer allocator.free(vertices);
         const indices = try allocator.alloc(u32, indexCount);
-        defer allocator.free(indices);
+        errdefer allocator.free(indices);
 
-        var offset: usize = 0;
+        var offset: u32 = 0;
         for (meshes) |m| {
             for (m.vertices, 0..) |v, i| {
                 vertices[offset + i] = v;
@@ -126,12 +178,24 @@ pub const MeshBatch = struct {
             for (m.indices, 0..) |j, i| {
                 indices[offset + i] = offset + j;
             }
-            offset += m.vertices.len;
+            offset += @intCast(m.vertices.len);
         }
 
-        return .{
+        self.changed = false;
+        self.lastGeneratedMesh = .{
             .vertices = vertices,
             .indices = indices,
         };
+        self.indexCount = indexCount;
+        return self.lastGeneratedMesh.?;
+    }
+
+    pub fn draw(self: *MeshBatch) Allocator.Error!void {
+        var finalM = try (try self.pack()).generate();
+        defer finalM.deinit();
+
+        finalM.vao.bind();
+        glad.drawElements(.Triangles, self.indexCount, u32, null);
+        glad.VertexArray.unbindAny();
     }
 };

@@ -85,11 +85,15 @@ pub fn build(b: *std.Build) void {
     });
 
     const graphicsModule = b.addModule("graphics", .{
-        .root_source_file = .{.path="src/graphics.zig"},
+        .root_source_file = .{ .path = "src/graphics.zig" },
         .imports = &.{
             .{
                 .name = "glad",
                 .module = gladModule,
+            },
+            .{
+                .name = "utils",
+                .module = utilsModule,
             },
         },
     });
