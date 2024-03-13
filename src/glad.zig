@@ -71,6 +71,8 @@ fn errFromC(err: c.GLenum) Error {
     };
 }
 
+/// You can do try glad.checkError() to check for any
+/// OpenGL errors
 pub fn checkError() Error!void {
     return switch (c.glGetError()) {
         c.GL_NO_ERROR => {},
@@ -91,10 +93,12 @@ pub fn init(loader: ?GladLoadProc) Error!Version {
     c.glGetIntegerv(c.GL_MINOR_VERSION, @ptrCast(&ver.minor));
     return ver;
 }
+/// deinitialize the library
 pub fn deinit() void {
     clearError();
 }
 
+/// clears the error message.
 pub fn clearError() void {
     if (errMessage) |_| {
         if (messageAllocator) |_| {
@@ -105,16 +109,22 @@ pub fn clearError() void {
     errMessage = null;
 }
 
+/// returns the error message
 pub fn getErrorMessage() []const u8 {
     return errMessage orelse "";
 }
 
+/// sets the error message
 pub fn setErrorMessage(allocator: Allocator, mess: []const u8) void {
     clearError();
     messageAllocator = allocator;
     errMessage = mess;
 }
 
+/// specifies the affine transformation of x and y
+/// from normalized device coordinates to window coordinates.
+///
+/// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glViewport.xhtml
 pub fn viewport(x: u32, y: u32, width: usize, height: usize) void {
     c.glViewport(
         @intCast(x),
@@ -184,9 +194,15 @@ inline fn capability2GL(cap: Capability) c.GLenum {
     };
 }
 
+/// enable a capability of OpenGL
+///
+/// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glEnable.xhtml
 pub fn enable(cap: Capability) void {
     c.glEnable(capability2GL(cap));
 }
+/// disable a capability of OpenGL
+///
+/// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glDisable.xhtml
 pub fn disable(cap: Capability) void {
     c.glDisable(capability2GL(cap));
 }
@@ -359,17 +375,40 @@ inline fn type2GL(comptime T: type) c.GLenum {
 pub const VertexArray = struct {
     id: u32 = 0,
 
+    pub fn gen() VertexArray {
+        var vao = VertexArray{};
+        c.glGenVertexArrays(1, @ptrCast(&vao.id));
+        return vao;
+    }
+    pub fn genSlice(allocator: Allocator, count: usize) Error![]VertexArray {
+        const slice = try allocator.alloc(VertexArray, count);
+        // yeah dangerous cast i know thanks
+        c.glGenVertexArrays(count, @ptrCast(slice.ptr));
+        return slice;
+    }
+    pub fn genArrays(comptime N: comptime_int) [N]Buffer {
+        var arrs: [N]Buffer = undefined;
+        c.glGenVertexArrays(N, @ptrCast(&arrs));
+        return arrs;
+    }
+
     pub fn create() VertexArray {
         var vao = VertexArray{};
         c.glCreateVertexArrays(1, @ptrCast(&vao.id));
         return vao;
     }
-    pub fn createArray(allocator: Allocator, count: usize) Error![]VertexArray {
+    pub fn createSlice(allocator: Allocator, count: usize) Error![]VertexArray {
         const slice = try allocator.alloc(VertexArray, count);
         // yeah dangerous cast i know thanks
         c.glCreateVertexArrays(count, @ptrCast(slice.ptr));
         return slice;
     }
+    pub fn createArrays(comptime N: comptime_int) [N]Buffer {
+        var arrs: [N]Buffer = undefined;
+        c.glCreateVertexArrays(N, @ptrCast(&arrs));
+        return arrs;
+    }
+
     pub fn destroy(self: *VertexArray) void {
         c.glDeleteVertexArrays(1, @ptrCast(&self.id));
         self.* = undefined;
@@ -400,7 +439,6 @@ pub const VertexArray = struct {
             @intCast(stride),
             @ptrFromInt(offset),
         );
-        c.glEnableVertexAttribArray(location);
         unbindAny();
     }
 };
@@ -474,17 +512,49 @@ inline fn dataAccedd2GL(access: DataAccess) c.GLenum {
 pub const Buffer = struct {
     id: u32 = 0,
 
+    pub fn gen() Buffer {
+        var buf = Buffer{};
+        c.glGenBuffers(1, @ptrCast(&buf.id));
+        return buf;
+    }
+    pub fn genSlice(allocator: Allocator, count: usize) Error![]Buffer {
+        const slice = try allocator.alloc(Buffer, count);
+        // yeah dangerous cast i know thanks
+        c.glGenBuffers(@intCast(count), @ptrCast(slice.ptr));
+        return slice;
+    }
+    pub fn genBuffers(comptime N: comptime_int) [N]Buffer {
+        var bufs: [N]Buffer = undefined;
+        c.glGenBuffers(N, @ptrCast(&bufs));
+        return bufs;
+    }
+
+    /// Creates a named buffer object
+    ///
+    /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glCreateBuffers.xhtml
     pub fn create() Buffer {
         var buf = Buffer{};
         c.glCreateBuffers(1, @ptrCast(&buf.id));
         return buf;
     }
-    pub fn createArray(allocator: Allocator, count: usize) Error![]Buffer {
+    /// Creates a named buffer object slice
+    ///
+    /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glCreateBuffers.xhtml
+    pub fn createSlice(allocator: Allocator, count: usize) Error![]Buffer {
         const slice = try allocator.alloc(Buffer, count);
         // yeah dangerous cast i know thanks
         c.glCreateBuffers(@intCast(count), @ptrCast(slice.ptr));
         return slice;
     }
+    /// Creates a named buffer object array
+    ///
+    /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glCreateBuffers.xhtml
+    pub fn createBuffers(comptime N: comptime_int) [N]Buffer {
+        var bufs: [N]Buffer = undefined;
+        c.glCreateBuffers(N, @ptrCast(&bufs));
+        return bufs;
+    }
+
     pub fn destroy(self: *Buffer) void {
         c.glDeleteBuffers(1, @ptrCast(&self.id));
         self.* = undefined;
@@ -502,8 +572,27 @@ pub const Buffer = struct {
         c.glBindBuffer(bufferType2GL(btype), 0);
     }
 
+    /// sets data for named buffer object
+    ///
+    /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml
     pub fn data(self: Buffer, comptime T: type, dat: []const T, access: DataAccess) void {
-        c.glNamedBufferData(@intCast(self.id), @intCast(dat.len * @sizeOf(T)), @ptrCast(dat.ptr), dataAccedd2GL(access));
+        c.glNamedBufferData(
+            @intCast(self.id),
+            @intCast(dat.len * @sizeOf(T)),
+            @ptrCast(dat.ptr),
+            dataAccedd2GL(access),
+        );
+    }
+    /// sets data for non-named buffer object
+    ///
+    /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml
+    pub fn dataTarget(target: BufferType, comptime T: type, dat: []const T, access: DataAccess) void {
+        c.glBufferData(
+            bufferType2GL(target),
+            @intCast(dat.len * @sizeOf(T)),
+            @ptrCast(dat.ptr),
+            dataAccedd2GL(access),
+        );
     }
 };
 
@@ -648,6 +737,9 @@ pub const ShaderProgram = struct {
 
     pub fn useProgram(self: ShaderProgram) void {
         c.glUseProgram(@intCast(self.id));
+    }
+    pub fn unuseAny() void {
+        c.glUseProgram(0);
     }
     pub fn ready(self: ShaderProgram, allocator: Allocator) Error!void {
         c.glValidateProgram(@intCast(self.id));
@@ -997,21 +1089,41 @@ inline fn texAccess2GL(access: TextureAccess) c.GLenum {
 pub const Texture = struct {
     id: u32,
 
+    pub fn gen(@"type": TextureType) Texture {
+        var id: u32 = 0;
+        c.glGenTextures(texType2GL(@"type"), 1, @ptrCast(&id));
+        return .{ .id = id };
+    }
+    pub fn genSlice(@"type": TextureType, size: usize, allocator: Allocator) Allocator.Error![]Texture {
+        const arr = try allocator.alloc(TextureType, size);
+        c.glGenTextures(texType2GL(@"type"), @intCast(size), @ptrCast(arr.ptr));
+        return arr;
+    }
+    pub fn genTextures(@"type": TextureType, comptime N: comptime_int) Allocator.Error![N]Texture {
+        var texs: [N]Texture = undefined;
+        c.glGenTextures(texType2GL(@"type"), N, @ptrCast(&texs));
+        return texs;
+    }
+
     pub fn create(@"type": TextureType) Texture {
         var id: u32 = 0;
         c.glCreateTextures(texType2GL(@"type"), 1, @ptrCast(&id));
         return .{ .id = id };
     }
+    pub fn createSlice(@"type": TextureType, size: usize, allocator: Allocator) Allocator.Error![]Texture {
+        const arr = try allocator.alloc(TextureType, size);
+        c.glCreateTextures(texType2GL(@"type"), @intCast(size), @ptrCast(arr.ptr));
+        return arr;
+    }
+    pub fn createTextures(@"type": TextureType, comptime N: comptime_int) Allocator.Error![N]Texture {
+        var texs: [N]Texture = undefined;
+        c.glCreateTextures(texType2GL(@"type"), N, @ptrCast(&texs));
+        return texs;
+    }
+
     pub fn destroy(self: *Texture) void {
         c.glDeleteTextures(1, @ptrCast(&self.id));
         self.* = undefined;
-    }
-    pub fn createArray(@"type": TextureType, size: usize, allocator: Allocator) Allocator.Error![]Texture {
-        const arr = try allocator.alloc(TextureType, size);
-
-        c.glCreateTextures(texType2GL(@"type"), @intCast(size), @ptrCast(arr.ptr));
-
-        return arr;
     }
     pub fn destroyArray(self: *[]Texture, allocator: Allocator) []Texture {
         c.glDeleteTextures(@intCast(self.len), @ptrCast(self.ptr));

@@ -15,7 +15,19 @@ pub fn build(b: *std.Build) void {
         .metal = true,
     });
 
+    const freetype = b.dependency("freetype", .{
+        .optimize = optimize,
+        .target = target,
+        .use_system_zlib = false,
+        .enable_brotli = true,
+    });
+
     const zlm = b.dependency("zlm", .{});
+
+    const freetypeModule = b.addModule("freetype", .{
+        .root_source_file = .{ .path = "src/freetype.zig" },
+    });
+    freetypeModule.linkLibrary(freetype.artifact("freetype"));
 
     const KeyModule = b.createModule(.{
         .root_source_file = .{ .path = "src/Key.zig" },
@@ -72,12 +84,26 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
+    const graphicsModule = b.addModule("graphics", .{
+        .root_source_file = .{.path="src/graphics.zig"},
+        .imports = &.{
+            .{
+                .name = "glad",
+                .module = gladModule,
+            },
+        },
+    });
+
     const libModule = b.addModule("zig3d", .{
         .root_source_file = .{ .path = "src/lib.zig" },
         .link_libc = true,
         .optimize = optimize,
         .target = target,
         .imports = &.{
+            .{
+                .name = "graphics",
+                .module = graphicsModule,
+            },
             .{
                 .name = "Key",
                 .module = KeyModule,
@@ -101,6 +127,10 @@ pub fn build(b: *std.Build) void {
             .{
                 .name = "stb",
                 .module = stbModule,
+            },
+            .{
+                .name = "freetype",
+                .module = freetypeModule,
             },
         },
     });

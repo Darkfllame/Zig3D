@@ -3,10 +3,15 @@ const zig3d = @import("zig3d");
 
 const glad = zig3d.glad;
 const glfw = zig3d.glfw;
+const graphics = zig3d.graphics;
 const print = zig3d.print;
 const println = zig3d.println;
 
+const Vec3f = glad.Vec3f;
+const Vec2f = glad.Vec2f;
 const Key = glfw.Key;
+const Vertex = graphics.Vertex;
+const Mesh = graphics.Mesh;
 
 fn autoError(e: anytype, additionalMessage: ?[]const u8, errStr: ?[]const u8) anyerror {
     if (@typeInfo(@TypeOf(e)) != .ErrorSet) @compileError("'e' MUST be an error");
@@ -34,10 +39,10 @@ fn autoError(e: anytype, additionalMessage: ?[]const u8, errStr: ?[]const u8) an
     return e;
 }
 
-const triangleVertices: []const f32 = &.{
-    -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
-    0.5,  -0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
-    0.0,  0.5,  0.0, 0.0, 0.0, 1.0, 1.0,
+const triangleVertices: []const Vertex = &.{
+    Vertex.new(-0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0),
+    Vertex.new(0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0),
+    Vertex.new(0.0, 0.5, 0.0, 0.0, 0.0, 1.0, 0.5, 1.0),
 };
 const triangleIndices: []const u32 = &.{
     0, 1, 2,
@@ -46,13 +51,16 @@ const triangleIndices: []const u32 = &.{
 const vertexShaderSource: []const u8 =
     \\#version 460 core
     \\layout (location = 0) in vec3 aPos;
-    \\layout (location = 1) in vec4 aCol;
+    \\layout (location = 1) in vec3 aCol;
+    \\layout (location = 2) in vec2 aUV;
     \\
-    \\out vec4 color;
+    \\out vec3 color;
+    \\out vec2 UV;
     \\
     \\void main() {
-    \\  gl_Position = vec4(aPos, 1);
+    \\  gl_Position = vec4(aPos, 1.0);
     \\  color = aCol;
+    \\  UV = aUV;
     \\}
 ;
 const fragmentShaderSource: []const u8 =
@@ -60,10 +68,11 @@ const fragmentShaderSource: []const u8 =
     \\
     \\out vec4 FragColor;
     \\
-    \\in vec4 color;
+    \\in vec3 color;
+    \\in vec2 UV;
     \\
     \\void main() {
-    \\  FragColor = color;
+    \\  FragColor = vec4(color, 1.0);
     \\}
 ;
 
@@ -106,31 +115,11 @@ fn main2(allocator: std.mem.Allocator, errMess: *[]const u8, errStr: *[]const u8
     };
     try println("Using OpenGL version {d}.{d}", glVersion);
 
-    var VBO = glad.Buffer.create();
-    defer VBO.destroy();
-    var EBO = glad.Buffer.create();
-    defer EBO.destroy();
-    var VAO = glad.VertexArray.create();
-    defer VAO.destroy();
-    {
-        VAO.bind();
-
-        EBO.data(u32, triangleIndices, .StaticDraw);
-        VBO.data(f32, triangleVertices, .StaticDraw);
-
-        VBO.bind(.Array);
-
-        EBO.bind(.ElementArray);
-
-        VAO.vertexAttrib(0, 3, f32, false, 7 * @sizeOf(f32), 0);
-        VAO.vertexAttrib(1, 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
-
-        glad.Buffer.unbindAny(.ElementArray);
-
-        glad.Buffer.unbindAny(.Array);
-
-        glad.VertexArray.unbindAny();
-    }
+    var m = try (Mesh{
+        .vertices = @constCast(triangleVertices),
+        .indices = @constCast(triangleIndices),
+    }).generate();
+    defer m.deinit();
 
     var program = glad.ShaderProgram.create();
     defer program.destroy();
@@ -182,8 +171,8 @@ fn main2(allocator: std.mem.Allocator, errMess: *[]const u8, errStr: *[]const u8
 
         program.useProgram();
 
-        VAO.bind();
-        glad.drawElements(.Triangles, 3, u32, null);
+        m.vao.bind();
+        glad.drawElements(.Triangles, triangleIndices.len, u32, null);
         glad.VertexArray.unbindAny();
 
         window.swapBuffers();
