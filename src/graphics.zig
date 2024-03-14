@@ -81,7 +81,7 @@ pub const Mesh = struct {
         };
     }
 
-    pub fn generate(self: *const Mesh) glad.Error!GLMesh {
+    pub fn generate(self: *const Mesh) GLMesh {
         const vao = glad.VertexArray.create();
         const buffers = glad.Buffer.createBuffers(2);
 
@@ -191,7 +191,7 @@ pub const MeshBatch = struct {
     }
 
     pub fn draw(self: *MeshBatch) Allocator.Error!void {
-        var finalM = try (try self.pack()).generate();
+        var finalM = (try self.pack()).generate();
         defer finalM.deinit();
 
         finalM.vao.bind();
