@@ -78,14 +78,46 @@ pub fn build(b: *std.Build) void {
     gladModule.addIncludePath(.{ .path = "include/" });
     gladModule.addCSourceFile(.{ .file = .{ .path = "src/glad.c" } });
 
+    const imageModule = b.addModule("image", .{
+        .root_source_file = .{ .path = "src/image.zig" },
+        .optimize = optimize,
+        .target = target,
+        .imports = &.{
+            .{
+                .name = "utils",
+                .module = utilsModule,
+            },
+            .{
+                .name = "zlm",
+                .module = zlm.module("zlm"),
+            },
+        },
+    });
+
     const stbModule = b.addModule("stb", .{
         .root_source_file = .{ .path = "src/stb.zig" },
         .optimize = optimize,
         .target = target,
+        .imports = &.{
+            .{
+                .name = "glfw",
+                .module = glfwModule,
+            },
+            .{
+                .name = "utils",
+                .module = utilsModule,
+            },
+            .{
+                .name = "image",
+                .module = imageModule,
+            },
+        },
     });
 
     const graphicsModule = b.addModule("graphics", .{
         .root_source_file = .{ .path = "src/graphics.zig" },
+        .optimize = optimize,
+        .target = target,
         .imports = &.{
             .{
                 .name = "glad",

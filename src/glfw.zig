@@ -967,9 +967,9 @@ pub const Color = packed struct {
 };
 
 pub const Image = struct {
+    pixels: []Color,
     width: u32,
     height: u32,
-    pixels: []Color,
 };
 
 pub const StandardCursor = enum {

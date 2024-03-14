@@ -797,6 +797,8 @@ pub const ShaderProgram = struct {
         switch (tinfo) {
             inline .Struct => {
                 switch (T) {
+                    Texture => c.glUniform1ui(@intCast(location), value.id),
+                    TextureHandle => c.glUniformHandleui64ARB(@intCast(location), @intCast(value.id)),
                     Vec2f => c.glUniform2f(@intCast(location), value.x, value.y),
                     Vec2d => c.glUniform2d(@intCast(location), value.x, value.y),
                     Vec3f => c.glUniform3f(@intCast(location), value.x, value.y, value.z),
@@ -1185,6 +1187,23 @@ pub const Texture = struct {
     }
 };
 
+pub const TextureHandle = struct {
+    id: u64,
+
+    pub fn init(tex: Texture) TextureHandle {
+        return .{
+            .id = @intCast(c.glGetTextureHandleARB(@intCast(tex.id))),
+        };
+    }
+
+    pub fn makeResident(self: TextureHandle) void {
+        c.glMakeTextureHandleResidentARB(@intCast(self.id));
+    }
+    pub fn makeNonResident(self: TextureHandle) void {
+        c.glMakeTextureHandleNonResidentARB(@intCast(self.id));
+    }
+};
+
 // check for gl struct sizes, avoid unwanted "undefined" behaviour
 comptime {
     if (@sizeOf(VertexArray) != @sizeOf(u32)) @compileError("Size of VertexArray is not the same as the size of u32");
@@ -1192,4 +1211,6 @@ comptime {
     if (@sizeOf(Texture) != @sizeOf(u32)) @compileError("Size of Texture is not the same as the size of u32");
     if (@sizeOf(Shader) != @sizeOf(u32)) @compileError("Size of Shader is not the same as the size of u32");
     if (@sizeOf(ShaderProgram) != @sizeOf(u32)) @compileError("Size of ShaderProgram is not the same as the size of u32");
+    if (@sizeOf(Texture) != @sizeOf(u32)) @compileError("Size of Texture is not the same as the size of u32");
+    if (@sizeOf(TextureHandle) != @sizeOf(u32)) @compileError("Size of TextureHandle is not the same as the size of u32");
 }

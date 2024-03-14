@@ -1,6 +1,7 @@
 const std = @import("std");
 const utils = @import("utils");
 const glfw = @import("glfw");
+const image = @import("image");
 const c = @cImport({
     @cDefine("STB_IMAGE_IMPLEMENTATION", "");
     @cInclude("STB/stb_image.h");
@@ -43,14 +44,24 @@ pub const Image = struct {
         self.* = undefined;
     }
 
-    /// returns null only if self.pixels.len is not a multiple
+    /// returns null only if pixels.len is not a multiple
     /// of 4.
     pub fn toGlfw(self: Image) ?glfw.Image {
         if (self.pixels.len % 4 != 0) return null;
         return .{
+            .pixels = @ptrCast(self.pixels),
             .width = self.width,
             .height = self.height,
+        };
+    }
+    /// returns null only if pixels.len is not a multiple
+    /// of 4.
+    pub fn toImage(self: Image) ?image.Image {
+        if (self.pixels.len % 4 != 0) return null;
+        return .{
             .pixels = @ptrCast(self.pixels),
+            .width = self.width,
+            .height = self.height,
         };
     }
 };
