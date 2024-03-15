@@ -7,8 +7,8 @@ The Zig3D library is maintaned by [me](https://github.com/Darkfllame/) and is ma
 To use this library you have to add a dependency in your `build.zig.zon` file:
 ```zig
 .zig3d = .{
-  .url = "https://github.com/Darkfllame/Zig3D/archive/9d45fc49b6ae8df17610efe21dc008eb23a9e3b7.tar.gz",
-  .hash = "1220ecef10039f71dfdbe4c5bf04b7fce4ce40c56351040e850d9f1f79b74b613e71",
+  .url = "https://github.com/Darkfllame/Zig3D/archive/7831191059abf96cb60ff0e3a42e1ff71b30466c.tar.gz",
+  .hash = "1220471c1ccae62433a10c2115cb1dcdf4f18bc00a8b2a755ab18fec504182b5df6e",
 },
 ```
 For the latest update.
