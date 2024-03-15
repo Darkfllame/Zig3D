@@ -146,6 +146,12 @@ pub const MeshBatch = struct {
         self.changed = true;
     }
     pub fn addMeshes(self: *MeshBatch, m: Mesh, transforms: []const glad.Mat4f) Allocator.Error!void {
+        if (transforms.len == 0) {
+            return;
+        } else if (transforms.len == 1) {
+            return self.addMesh(m, transforms[0]);
+        }
+
         const clones = try self.allocator.alloc(Mesh, transforms.len);
         defer self.allocator.free(clones);
         var maxIdx: usize = 0;

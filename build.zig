@@ -122,32 +122,12 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const graphicsModule = b.addModule("graphics", .{
-        .root_source_file = .{ .path = "src/graphics.zig" },
-        .optimize = optimize,
-        .target = target,
-        .imports = &.{
-            .{
-                .name = "glad",
-                .module = gladModule,
-            },
-            .{
-                .name = "utils",
-                .module = utilsModule,
-            },
-        },
-    });
-
     const libModule = b.addModule("zig3d", .{
         .root_source_file = .{ .path = "src/lib.zig" },
         .link_libc = true,
         .optimize = optimize,
         .target = target,
         .imports = &.{
-            .{
-                .name = "graphics",
-                .module = graphicsModule,
-            },
             .{
                 .name = "Key",
                 .module = KeyModule,
@@ -179,39 +159,30 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const exe = b.addExecutable(.{
-        .name = "Demo",
-        .root_source_file = .{ .path = "src/main.zig" },
+    makeDemo(b, libModule, "simpleDemo", "demo", "Run the simple demo app", optimize, target);
+    makeDemo(b, libModule, "quadDemo", "quad", "Run the demo quad app", optimize, target);
+    makeDemo(b, libModule, "batchDemo", "batch", "Run the batch demo app", optimize, target);
+    makeDemo(b, libModule, "bindlessTexture", "texture", "Run the bindless texture demo app", optimize, target);
+}
+
+fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, comptime path: []const u8, name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {
+    const demo = b.addExecutable(.{
+        .name = name,
+        .root_source_file = .{ .path = "examples/" ++ path ++ "/main.zig" },
         .optimize = optimize,
         .target = target,
     });
+    demo.root_module.addImport("zig3d", libmodule);
 
-    exe.root_module.addImport("zig3d", libModule);
+    b.installArtifact(demo);
 
-    b.installArtifact(exe);
+    const demo_run = b.addRunArtifact(demo);
+    demo_run.step.dependOn(b.getInstallStep());
 
-    const run_cmd = b.addRunArtifact(exe);
-    {
-        run_cmd.step.dependOn(b.getInstallStep());
-
-        if (b.args) |args| {
-            run_cmd.addArgs(args);
-        }
-
-        const run_step = b.step("run", "Run the app");
-        run_step.dependOn(&run_cmd.step);
+    if (b.args) |args| {
+        demo_run.addArgs(args);
     }
 
-    {
-        const exe_unit_tests = b.addTest(.{
-            .root_source_file = .{ .path = "src/main.zig" },
-            .target = target,
-            .optimize = optimize,
-        });
-
-        const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
-
-        const test_step = b.step("test", "Run unit tests");
-        test_step.dependOn(&run_exe_unit_tests.step);
-    }
+    const run_step = b.step(name, desc);
+    run_step.dependOn(&demo_run.step);
 }
