@@ -96,6 +96,7 @@ pub fn build(b: *std.Build) void {
 
     const stbModule = b.addModule("stb", .{
         .root_source_file = .{ .path = "src/stb.zig" },
+        .link_libc = true,
         .optimize = optimize,
         .target = target,
         .imports = &.{
@@ -111,6 +112,13 @@ pub fn build(b: *std.Build) void {
                 .name = "image",
                 .module = imageModule,
             },
+        },
+    });
+    stbModule.addIncludePath(.{ .path = "include/" });
+    stbModule.addCSourceFile(.{
+        .file = .{ .path = "src/stbdefs.c" },
+        .flags = &.{
+            "-Iinclude",
         },
     });
 

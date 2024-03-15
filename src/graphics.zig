@@ -186,7 +186,7 @@ pub const MeshBatch = struct {
             .vertices = vertices,
             .indices = indices,
         };
-        self.indexCount = indexCount;
+        self.indexCount = @intCast(indexCount);
         return self.lastGeneratedMesh.?;
     }
 
