@@ -207,6 +207,26 @@ pub fn disable(cap: Capability) void {
     c.glDisable(capability2GL(cap));
 }
 
+pub fn cullFace(face: Face) void {
+    c.glCullFace(face2GL(face));
+}
+
+pub const FrontFaceMode = enum {
+    CW,
+    CCW,
+};
+
+inline fn ffm2GL(face: FrontFaceMode) c.GLenum {
+    return switch (face) {
+        .CW => c.GL_CW,
+        .CCW => c.GL_CCW,
+    };
+}
+
+pub fn frontFace(face: FrontFaceMode) void {
+    c.glFrontFace(ffm2GL(face));
+}
+
 pub const DebugSource = enum {
     Api,
     WindowSystem,
@@ -782,9 +802,7 @@ pub const ShaderProgram = struct {
     }
 
     pub fn uniformLocation(self: ShaderProgram, name: [:0]const u8) u32 {
-        const loc = c.glGetUniformLocation(@intCast(self.id), @ptrCast(name.ptr));
-        if (loc == -1) return @truncate(-1);
-        return @bitCast(loc);
+        return @bitCast(c.glGetUniformLocation(@intCast(self.id), @ptrCast(name.ptr)));
     }
     pub fn setUniformLoc(self: ShaderProgram, location: u32, value: anytype) void {
         _ = self;
@@ -797,7 +815,6 @@ pub const ShaderProgram = struct {
         switch (tinfo) {
             inline .Struct => {
                 switch (T) {
-                    Texture => c.glUniform1ui(@intCast(location), value.id),
                     TextureHandle => c.glUniformHandleui64ARB(@intCast(location), @intCast(value.id)),
                     Vec2f => c.glUniform2f(@intCast(location), value.x, value.y),
                     Vec2d => c.glUniform2d(@intCast(location), value.x, value.y),
@@ -880,6 +897,38 @@ pub fn drawElements(mode: DrawMode, count: usize, comptime T: type, indices: ?*c
     c.glDrawElements(drawMod2GL(mode), @intCast(count), type2GL(T), indices);
 }
 
+pub const Face = enum {
+    Front,
+    Back,
+    FrontAndBack,
+};
+
+inline fn face2GL(mode: Face) c.GLenum {
+    return switch (mode) {
+        .Front => c.GL_FRONT,
+        .Back => c.GL_BACK,
+        .FrontAndBack => c.GL_FRONT_AND_BACK,
+    };
+}
+
+pub const FaceMode = enum {
+    Point,
+    Line,
+    Fill,
+};
+
+inline fn faceMode2GL(mode: FaceMode) c.GLenum {
+    return switch (mode) {
+        .Point => c.GL_POINT,
+        .Line => c.GL_LINE,
+        .Fill => c.GL_FILL,
+    };
+}
+
+pub fn polygonMode(face: Face, mode: FaceMode) void {
+    c.glPolygonMode(face2GL(face), faceMode2GL(mode));
+}
+
 pub const TextureType = enum {
     Texture1D,
     Texture2D,
@@ -956,14 +1005,40 @@ inline fn texParam2GL(param: TextureParameter) c.GLenum {
     };
 }
 
-fn canBeEnum(comptime T: type, value: anytype) bool {
-    const vtinfo = @typeInfo(@TypeOf(value));
-    const tinfo = @typeInfo(T);
+pub const CompareFunction = enum {
+    LessEqual,
+    GreaterEqual,
+    Less,
+    Greater,
+    Equal,
+    NotEqual,
+    Always,
+    Never,
+};
 
-    if (tinfo != .Enum or !(vtinfo == .Enum or vtinfo == .EnumLiteral))
-        @compileError("Expected enum, got value: " ++ @typeName(@TypeOf(value)) ++ ", T: " ++ @typeName(T));
+inline fn compFn2GL(compfn: CompareFunction) c.GLenum {
+    return switch (compfn) {
+        .LessEqual => c.GL_LEQUAL,
+        .GreaterEqual => c.GL_GEQUAL,
+        .Less => c.GL_LESS,
+        .Greater => c.GL_GREATER,
+        .Equal => c.GL_EQUAL,
+        .NotEqual => c.GL_NOTEQUAL,
+        .Always => c.GL_ALWAYS,
+        .Never => c.GL_NEVER,
+    };
+}
 
-    return comptime std.meta.stringToEnum(T, @tagName(value)) != null;
+pub const CompareMode = enum {
+    RefToTexture,
+    None,
+};
+
+inline fn compMode2GL(mode: CompareMode) c.GLenum {
+    return switch (mode) {
+        .RefToTexture => c.GL_COMPARE_REF_TO_TEXTURE,
+        .None => c.GL_NONE,
+    };
 }
 
 pub const Filter = enum {
@@ -1001,6 +1076,38 @@ inline fn wrapMode2GL(mode: WrapMode) c.GLint {
         .ClampEdge => c.GL_CLAMP_TO_EDGE,
         .MirroredRepeat => c.GL_MIRRORED_REPEAT,
         .Repeat => c.GL_REPEAT,
+    };
+}
+
+pub const DepthStencilTextureMode = enum {
+    DepthComponent,
+    StencilIndex,
+};
+
+inline fn dstm2GL(mode: DepthStencilTextureMode) c.GLenum {
+    return switch (mode) {
+        .DepthComponent => c.GL_DEPTH_COMPONENT,
+        .StencilIndex => c.GL_STENCIL_INDEX,
+    };
+}
+
+pub const Swizzle = enum {
+    Red,
+    Green,
+    Blue,
+    Alpha,
+    Zero,
+    One,
+};
+
+inline fn swizzle2GL(swizzle: Swizzle) c.GLenum {
+    return switch (swizzle) {
+        .Red => c.GL_RED,
+        .Green => c.GL_GREEN,
+        .Blue => c.GL_BLUE,
+        .Alpha => c.GL_ALPHA,
+        .Zero => c.GL_ZERO,
+        .One => c.GL_ONE,
     };
 }
 
@@ -1074,6 +1181,22 @@ inline fn texFormat2GL(fmt: TextureFormat) c.GLenum {
     };
 }
 
+pub const BaseTextureFormat = enum {
+    RED,
+    RG,
+    RGB,
+    RGBA,
+};
+
+inline fn btf2GL(fmt: BaseTextureFormat) c.GLenum {
+    return switch (fmt) {
+        .RED => c.GL_RED,
+        .RG => c.GL_RG,
+        .RGB => c.GL_RGB,
+        .RGBA => c.GL_RGBA,
+    };
+}
+
 pub const TextureAccess = enum {
     ReadOnly,
     WriteOnly,
@@ -1091,35 +1214,35 @@ inline fn texAccess2GL(access: TextureAccess) c.GLenum {
 pub const Texture = struct {
     id: u32,
 
-    pub fn gen(@"type": TextureType) Texture {
+    pub fn gen() Texture {
         var id: u32 = 0;
-        c.glGenTextures(texType2GL(@"type"), 1, @ptrCast(&id));
+        c.glGenTextures(1, @ptrCast(&id));
         return .{ .id = id };
     }
-    pub fn genSlice(@"type": TextureType, size: usize, allocator: Allocator) Allocator.Error![]Texture {
+    pub fn genSlice(size: usize, allocator: Allocator) Allocator.Error![]Texture {
         const arr = try allocator.alloc(TextureType, size);
-        c.glGenTextures(texType2GL(@"type"), @intCast(size), @ptrCast(arr.ptr));
+        c.glGenTextures(@intCast(size), @ptrCast(arr.ptr));
         return arr;
     }
-    pub fn genTextures(@"type": TextureType, comptime N: comptime_int) Allocator.Error![N]Texture {
+    pub fn genTextures(comptime N: comptime_int) Allocator.Error![N]Texture {
         var texs: [N]Texture = undefined;
-        c.glGenTextures(texType2GL(@"type"), N, @ptrCast(&texs));
+        c.glGenTextures(N, @ptrCast(&texs));
         return texs;
     }
 
-    pub fn create(@"type": TextureType) Texture {
+    pub fn create() Texture {
         var id: u32 = 0;
-        c.glCreateTextures(texType2GL(@"type"), 1, @ptrCast(&id));
+        c.glCreateTextures(1, @ptrCast(&id));
         return .{ .id = id };
     }
-    pub fn createSlice(@"type": TextureType, size: usize, allocator: Allocator) Allocator.Error![]Texture {
+    pub fn createSlice(size: usize, allocator: Allocator) Allocator.Error![]Texture {
         const arr = try allocator.alloc(TextureType, size);
-        c.glCreateTextures(texType2GL(@"type"), @intCast(size), @ptrCast(arr.ptr));
+        c.glCreateTextures(@intCast(size), @ptrCast(arr.ptr));
         return arr;
     }
-    pub fn createTextures(@"type": TextureType, comptime N: comptime_int) Allocator.Error![N]Texture {
+    pub fn createTextures(comptime N: comptime_int) Allocator.Error![N]Texture {
         var texs: [N]Texture = undefined;
-        c.glCreateTextures(texType2GL(@"type"), N, @ptrCast(&texs));
+        c.glCreateTextures(N, @ptrCast(&texs));
         return texs;
     }
 
@@ -1133,19 +1256,279 @@ pub const Texture = struct {
         self.* = undefined;
     }
 
-    pub fn textureParami(self: Texture, param: TextureParameter, value: i32) !void {
-        c.glTextureParameteri(@intCast(self.id), texParam2GL(param), @intCast(value));
+    pub fn bind(self: Texture, @"type": TextureType) void {
+        c.glBindTexture(texType2GL(@"type"), @intCast(self.id));
     }
-    pub fn textureParamFilter(self: Texture, param: TextureParameter, value: Filter) !void {
-        c.glTextureParameteri(@intCast(self.id), texParam2GL(param), filter2GL(value));
+
+    pub fn unbindAny(@"type": TextureType) void {
+        c.glBindTexture(texType2GL(@"type"), 0);
     }
-    pub fn textureParamWrap(self: Texture, param: TextureParameter, value: WrapMode) !void {
-        c.glTextureParameteri(@intCast(self.id), texParam2GL(param), wrapMode2GL(value));
+
+    pub const ParamError = error{InvalidArgument};
+
+    inline fn checkParams(param: TextureParameter, comptime params: []const TextureParameter) ParamError!void {
+        inline for (params) |p| {
+            if (param == p)
+                return;
+        }
+        return ParamError.InvalidArgument;
     }
-    pub fn textureParamf(self: Texture, param: TextureParameter, value: f32) !void {
-        c.glTextureParameterf(@intCast(self.id), texParam2GL(param), @floatCast(value));
+
+    fn textureParamEnum(self: Texture, param: TextureParameter, value: anytype) ParamError!void {
+        const T = @TypeOf(value);
+        const tinfo = @typeInfo(T);
+
+        if (tinfo != .Enum and tinfo != .EnumLiteral)
+            @compileError("Only accepts enum and enum literals");
+
+        try checkParams(param, &.{
+            .DepthStencilMode,
+            .CompareFunc,
+            .CompareMode,
+            .MinFilter,
+            .MagFilter,
+            .SwizzleR,
+            .SwizzleG,
+            .SwizzleB,
+            .SwizzleA,
+            .WrapS,
+            .WrapT,
+            //.WrapR,
+        });
+
+        switch (T) {
+            inline DepthStencilTextureMode => {
+                try checkParams(param, &.{.DepthStencilMode});
+                c.glTextureParameteri(@intCast(self.id), texParam2GL(param), dstm2GL(value));
+            },
+            inline CompareFunction => {
+                try checkParams(param, &.{.CompareFunc});
+                c.glTextureParameteri(@intCast(self.id), texParam2GL(param), compFn2GL(value));
+            },
+            inline CompareMode => {
+                try checkParams(param, &.{.CompareMode});
+                c.glTextureParameteri(@intCast(self.id), texParam2GL(param), compMode2GL(value));
+            },
+            inline Filter => {
+                try checkParams(param, &.{ .MinFilter, .MagFilter });
+                c.glTextureParameteri(@intCast(self.id), texParam2GL(param), filter2GL(value));
+            },
+            inline Swizzle => {
+                try checkParams(param, &.{ .SwizzleR, .SwizzleG, .SwizzleB, .SwizzleA });
+                c.glTextureParameteri(@intCast(self.id), texParam2GL(param), swizzle2GL(value));
+            },
+            inline WrapMode => {
+                try checkParams(param, &.{ .WrapS, .WrapT });
+                c.glTextureParameteri(@intCast(self.id), texParam2GL(param), wrapMode2GL(value));
+            },
+            inline else => {
+                switch (value) {
+                    inline .DepthComponent, .StencilIndex => self.textureParamEnum(param, @as(DepthStencilTextureMode, value)),
+                    inline .LessEqual, .GreaterEqual, .Less, .Greater, .Equal, .NotEqual, .Always, .Never => self.textureParamEnum(param, @as(CompareFunction, value)),
+                    inline .RefToTexture, .None => self.textureParamEnum(param, @as(CompareMode, value)),
+                    inline .Nearest, .Linear, .NearestMipmapNearest, .LinearMipmapNearest, .NearestMipmapLinear, .LinearMipmapLinear => self.textureParamEnum(param, @as(Filter, value)),
+                    inline .Red, .Green, .Blue, .Alpha, .Zero, .One => self.textureParamEnum(param, @as(Swizzle, value)),
+                    inline .ClampEdge, .MirroredRepeat, .Repeat => self.textureParamEnum(param, @as(WrapMode, value)),
+                    inline else => return ParamError.InvalidArgument,
+                }
+            },
+        }
     }
-    pub fn storage(self: Texture, comptime dim: u32, levels: u32, format: TextureFormat, width: u32, height: u32, depth: u32) void {
+
+    inline fn textureParamInt(self: Texture, param: TextureParameter, value: anytype) ParamError!void {
+        const T = @TypeOf(value);
+        const tinfo = @typeInfo(T);
+
+        try checkParams(param, &.{
+            .BaseLevel,
+        });
+
+        switch (tinfo) {
+            inline .Int => |d| {
+                const signedness = comptime d.signedness;
+                const bits = comptime d.bits;
+
+                switch (bits) {
+                    inline 32 => {
+                        if (signedness == .signed)
+                            c.glTextureParameteri(@intCast(self.id), texParam2GL(param), value)
+                        else
+                            c.glTextureParameterIuiv(@intCast(self.id), texParam2GL(param), @ptrCast(&value));
+                    },
+                    inline else => @compileError(std.fmt.comptimePrint("invalid int bit length, got: {d} expected 32", .{bits})),
+                }
+            },
+            else => @compileError("Only int type is accepted, got: " ++ @typeName(T)),
+        }
+    }
+
+    inline fn textureParamFloat(self: Texture, param: TextureParameter, value: anytype) ParamError!void {
+        const T = @TypeOf(value);
+        const tinfo = @typeInfo(T);
+
+        try checkParams(param, &.{
+            .LodBias,
+            .MinLod,
+            .MaxLod,
+            .MaxLevel,
+        });
+
+        switch (tinfo) {
+            inline .Float => |d| {
+                const bits = comptime d.bits;
+
+                switch (bits) {
+                    inline 32 => {
+                        c.glTextureParameterf(@intCast(self.id), texParam2GL(param), value);
+                    },
+                    inline else => @compileError(std.fmt.comptimePrint("invalid float bit length, got: {d} expected 32", .{bits})),
+                }
+            },
+            else => @compileError("Only float type is accepted, got: " ++ @typeName(T)),
+        }
+    }
+
+    pub fn textureParam(self: Texture, param: TextureParameter, value: anytype) ParamError!void {
+        const T = @TypeOf(value);
+        const tinfo = @typeInfo(T);
+
+        switch (tinfo) {
+            inline .Enum, .EnumLiteral => try self.textureParamEnum(param, value),
+            inline .Int => try self.textureParamInt(param, value),
+            inline .Float => try self.textureParamFloat(param, value),
+            inline .ComptimeFloat, .ComptimeInt => @compileError("Comptime values aren't accepted to textureParam"),
+            else => @compileError("Invalid texture parameter type: " ++ @typeName(T)),
+        }
+    }
+
+    fn texParamEnum(@"type": TextureType, param: TextureParameter, value: anytype) ParamError!void {
+        const T = @TypeOf(value);
+        const tinfo = @typeInfo(T);
+
+        if (tinfo != .Enum and tinfo != .EnumLiteral)
+            @compileError("Only accepts enum and enum literals");
+
+        try checkParams(param, &.{
+            .DepthStencilMode,
+            .CompareFunc,
+            .CompareMode,
+            .MinFilter,
+            .MagFilter,
+            .SwizzleR,
+            .SwizzleG,
+            .SwizzleB,
+            .SwizzleA,
+            .WrapS,
+            .WrapT,
+            //.WrapR,
+        });
+
+        switch (T) {
+            inline DepthStencilTextureMode => {
+                try checkParams(param, &.{.DepthStencilMode});
+                c.glTexParameteri(texType2GL(@"type"), texParam2GL(param), dstm2GL(value));
+            },
+            inline CompareFunction => {
+                try checkParams(param, &.{.CompareFunc});
+                c.glTexParameteri(texType2GL(@"type"), texParam2GL(param), compFn2GL(value));
+            },
+            inline CompareMode => {
+                try checkParams(param, &.{.CompareMode});
+                c.glTexParameteri(texType2GL(@"type"), texParam2GL(param), compMode2GL(value));
+            },
+            inline Filter => {
+                try checkParams(param, &.{ .MinFilter, .MagFilter });
+                c.glTexParameteri(texType2GL(@"type"), texParam2GL(param), filter2GL(value));
+            },
+            inline Swizzle => {
+                try checkParams(param, &.{ .SwizzleR, .SwizzleG, .SwizzleB, .SwizzleA });
+                c.glTexParameteri(texType2GL(@"type"), texParam2GL(param), swizzle2GL(value));
+            },
+            inline WrapMode => {
+                try checkParams(param, &.{ .WrapS, .WrapT });
+                c.glTexParameteri(texType2GL(@"type"), texParam2GL(param), wrapMode2GL(value));
+            },
+            inline else => {
+                switch (value) {
+                    inline .DepthComponent, .StencilIndex => try texParamEnum(@"type", param, @as(DepthStencilTextureMode, value)),
+                    inline .LessEqual, .GreaterEqual, .Less, .Greater, .Equal, .NotEqual, .Always, .Never => try texParamEnum(@"type", param, @as(CompareFunction, value)),
+                    inline .RefToTexture, .None => try texParamEnum(@"type", param, @as(CompareMode, value)),
+                    inline .Nearest, .Linear, .NearestMipmapNearest, .LinearMipmapNearest, .NearestMipmapLinear, .LinearMipmapLinear => try texParamEnum(@"type", param, @as(Filter, value)),
+                    inline .Red, .Green, .Blue, .Alpha, .Zero, .One => try texParamEnum(@"type", param, @as(Swizzle, value)),
+                    inline .ClampEdge, .MirroredRepeat, .Repeat => try texParamEnum(@"type", param, @as(WrapMode, value)),
+                    inline else => return ParamError.InvalidArgument,
+                }
+            },
+        }
+    }
+
+    inline fn texParamInt(@"type": TextureType, param: TextureParameter, value: anytype) ParamError!void {
+        const T = @TypeOf(value);
+        const tinfo = @typeInfo(T);
+
+        try checkParams(param, &.{
+            .BaseLevel,
+        });
+
+        switch (tinfo) {
+            inline .Int => |d| {
+                const signedness = comptime d.signedness;
+                const bits = comptime d.bits;
+
+                switch (bits) {
+                    inline 32 => {
+                        if (signedness == .signed)
+                            c.glTexParameteri(texType2GL(@"type"), texParam2GL(param), value)
+                        else
+                            c.glTexParameterIuiv(texType2GL(@"type"), texParam2GL(param), @ptrCast(&value));
+                    },
+                    inline else => @compileError(std.fmt.comptimePrint("invalid int bit length, got: {d} expected 32", .{bits})),
+                }
+            },
+            else => @compileError("Only int type is accepted, got: " ++ @typeName(T)),
+        }
+    }
+
+    inline fn texParamFloat(@"type": TextureType, param: TextureParameter, value: anytype) ParamError!void {
+        const T = @TypeOf(value);
+        const tinfo = @typeInfo(T);
+
+        try checkParams(param, &.{
+            .LodBias,
+            .MinLod,
+            .MaxLod,
+            .MaxLevel,
+        });
+
+        switch (tinfo) {
+            inline .Float => |d| {
+                const bits = comptime d.bits;
+
+                switch (bits) {
+                    inline 32 => {
+                        c.glTexParameterf(texType2GL(@"type"), texParam2GL(param), value);
+                    },
+                    inline else => @compileError(std.fmt.comptimePrint("invalid float bit length, got: {d} expected 32", .{bits})),
+                }
+            },
+            else => @compileError("Only float type is accepted, got: " ++ @typeName(T)),
+        }
+    }
+
+    pub fn texParam(@"type": TextureType, param: TextureParameter, value: anytype) ParamError!void {
+        const T = @TypeOf(value);
+        const tinfo = @typeInfo(T);
+
+        switch (tinfo) {
+            inline .Enum, .EnumLiteral => try texParamEnum(@"type", param, value),
+            inline .Int => try texParamInt(@"type", param, value),
+            inline .Float => try texParamFloat(@"type", param, value),
+            inline .ComptimeFloat, .ComptimeInt => @compileError("Comptime values aren't accepted to textureParam"),
+            else => @compileError("Invalid texture parameter type: " ++ @typeName(T)),
+        }
+    }
+
+    pub fn textureStorage(self: Texture, comptime dim: u2, levels: u32, format: TextureFormat, width: u32, height: u32, depth: u32) void {
         switch (dim) {
             inline 1 => c.glTextureStorage1D(
                 @intCast(self.id),
@@ -1168,9 +1551,83 @@ pub const Texture = struct {
                 @intCast(height),
                 @intCast(depth),
             ),
-            inline else => @compileError("Cannot call glTextureStorage with " ++ dim ++ " dimensions"),
+            inline else => @compileError(std.fmt.comptimePrint("Cannot call glTextureStorage with {d} dimensions", .{dim})),
         }
     }
+    pub fn texStorage(@"type": TextureType, comptime dim: u2, levels: u32, format: TextureFormat, width: u32, height: u32, depth: u32) void {
+        switch (dim) {
+            inline 1 => c.glTexStorage1D(
+                texType2GL(@"type"),
+                @intCast(levels),
+                texFormat2GL(format),
+                @intCast(width),
+            ),
+            inline 2 => c.glTexStorage2D(
+                texType2GL(@"type"),
+                @intCast(levels),
+                texFormat2GL(format),
+                @intCast(width),
+                @intCast(height),
+            ),
+            inline 3 => c.glTexStorage3D(
+                texType2GL(@"type"),
+                @intCast(levels),
+                texFormat2GL(format),
+                @intCast(width),
+                @intCast(height),
+                @intCast(depth),
+            ),
+            inline else => @compileError(std.fmt.comptimePrint("Cannot call glTexStorage with {d} dimensions", .{dim})),
+        }
+    }
+
+    pub fn texImage(comptime dim: u2, @"type": TextureType, level: u32, format: BaseTextureFormat, width: u32, height: u32, depth: u32, comptime T: type, data: []T) void {
+        switch (dim) {
+            inline 1 => c.glTexImage1D(
+                texType2GL(@"type"),
+                @intCast(level),
+                c.GL_RGBA,
+                @intCast(width),
+                0,
+                btf2GL(format),
+                type2GL(T),
+                utils.opaqueCast(*anyopaque, data.ptr),
+            ),
+            inline 2 => c.glTexImage2D(
+                texType2GL(@"type"),
+                @intCast(level),
+                c.GL_RGBA,
+                @intCast(width),
+                @intCast(height),
+                0,
+                btf2GL(format),
+                type2GL(T),
+                utils.opaqueCast(*anyopaque, data.ptr),
+            ),
+            inline 3 => c.glTexImage2D(
+                texType2GL(@"type"),
+                @intCast(level),
+                c.GL_RGBA,
+                @intCast(width),
+                @intCast(height),
+                @intCast(depth),
+                0,
+                btf2GL(format),
+                type2GL(T),
+                utils.opaqueCast(*anyopaque, data.ptr),
+            ),
+            inline else => @compileError(std.fmt.comptimePrint("Cannot call glTexImage with {d} dimensions", .{dim})),
+        }
+    }
+
+    pub fn generateMipmap(@"type": TextureType) void {
+        c.glGenerateMipmap(texType2GL(@"type"));
+    }
+
+    pub fn active(slot: u32) void {
+        c.glActiveTexture(@intCast(slot));
+    }
+
     pub fn bindImageTexture(self: Texture, unit: u32, level: u32, layered: bool, layer: u32, access: TextureAccess, format: TextureFormat) void {
         c.glBindImageTexture(
             @intCast(unit),
@@ -1212,5 +1669,5 @@ comptime {
     if (@sizeOf(Shader) != @sizeOf(u32)) @compileError("Size of Shader is not the same as the size of u32");
     if (@sizeOf(ShaderProgram) != @sizeOf(u32)) @compileError("Size of ShaderProgram is not the same as the size of u32");
     if (@sizeOf(Texture) != @sizeOf(u32)) @compileError("Size of Texture is not the same as the size of u32");
-    if (@sizeOf(TextureHandle) != @sizeOf(u32)) @compileError("Size of TextureHandle is not the same as the size of u32");
+    if (@sizeOf(TextureHandle) != @sizeOf(u64)) @compileError("Size of TextureHandle is not the same as the size of u32");
 }
