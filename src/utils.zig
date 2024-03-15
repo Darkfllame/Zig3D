@@ -6,6 +6,9 @@ const Allocator = std.mem.Allocator;
 
 pub const getStdOut = std.io.getStdOut;
 
+pub const toRadians = std.math.pi / 180.0;
+pub const toDegrees = 180.0 / std.math.pi;
+
 pub fn print(comptime format: []const u8, args: anytype) File.WriteError!void {
     const stdout = getStdOut().writer();
     try stdout.print(format, args);

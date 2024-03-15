@@ -3,7 +3,10 @@ pub const glad = @import("glad");
 pub const stb = @import("stb");
 pub const freetype = @import("freetype");
 pub const zlm = @import("zlm");
-pub const graphics = @import("graphics");
+pub const UtilityTypes = struct {
+    pub usingnamespace @import("camera.zig");
+    pub usingnamespace @import("graphics.zig");
+};
 pub usingnamespace @import("utils");
 
 comptime {
@@ -12,6 +15,5 @@ comptime {
     _ = stb;
     _ = freetype;
     _ = zlm;
-    _ = graphics;
     _ = @This();
 }
