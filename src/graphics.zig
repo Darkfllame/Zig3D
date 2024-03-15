@@ -136,17 +136,40 @@ pub const MeshBatch = struct {
         self.* = undefined;
     }
 
-    pub fn addMesh(self: *MeshBatch, m: Mesh) Allocator.Error!void {
+    pub fn addMesh(self: *MeshBatch, m: Mesh, transform: glad.Mat4f) Allocator.Error!void {
         var mclone = try m.clone(self.allocator);
         errdefer mclone.deinit(self.allocator);
+        for (mclone.vertices) |*v| {
+            v.position = v.position.swizzle("xyz1").transform(transform).swizzle("xyz");
+        }
         try self.meshes.append(mclone);
         self.changed = true;
     }
-    pub fn addMeshes(self: *MeshBatch, ms: []Mesh) Allocator.Error!void {
-        for (ms) |m| try self.addMesh(m);
+    pub fn addMeshes(self: *MeshBatch, m: Mesh, transforms: []const glad.Mat4f) Allocator.Error!void {
+        const clones = try self.allocator.alloc(Mesh, transforms.len);
+        defer self.allocator.free(clones);
+        var maxIdx: usize = 0;
+        errdefer {
+            for (0..maxIdx) |i| {
+                clones[i].deinit(self.allocator);
+            }
+        }
+
+        for (transforms) |t| {
+            const mclone = try m.clone(self.allocator);
+            for (mclone.vertices) |*v| {
+                v.position = v.position.swizzle("xyz1").transform(t).swizzle("xyz");
+            }
+            clones[maxIdx] = mclone;
+            maxIdx += 1;
+        }
+
+        try self.meshes.appendSlice(clones);
+        self.changed = true;
     }
     pub fn empty(self: *MeshBatch) void {
         for (self.meshes.items) |*m| m.deinit(self.allocator);
+        self.meshes.clearRetainingCapacity();
         if (self.lastGeneratedMesh) |*m| m.deinit(self.allocator);
         self.changed = true;
     }
@@ -170,15 +193,17 @@ pub const MeshBatch = struct {
         const indices = try allocator.alloc(u32, indexCount);
         errdefer allocator.free(indices);
 
-        var offset: u32 = 0;
+        var voffset: u32 = 0;
+        var ioffset: u32 = 0;
         for (meshes) |m| {
             for (m.vertices, 0..) |v, i| {
-                vertices[offset + i] = v;
+                vertices[voffset + i] = v;
             }
             for (m.indices, 0..) |j, i| {
-                indices[offset + i] = offset + j;
+                indices[ioffset + i] = voffset + j;
             }
-            offset += @intCast(m.vertices.len);
+            voffset += @intCast(m.vertices.len);
+            ioffset += @intCast(m.indices.len);
         }
 
         self.changed = false;
