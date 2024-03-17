@@ -207,6 +207,56 @@ pub fn disable(cap: Capability) void {
     c.glDisable(capability2GL(cap));
 }
 
+pub const BlendFunc = enum {
+    Zero,
+    One,
+    SrcColor,
+    InvertSrcColor,
+    DstColor,
+    InvertDstColor,
+    SrcAlpha,
+    InvertSrcAlpha,
+    DstAlpha,
+    InvertDstAlpha,
+    ConstantColor,
+    InvertConstantColor,
+    ConstantAlpha,
+    InvertConstantAlpha,
+    SrcAlphaSaturate,
+    Src1Color,
+    InvertSrc1Color,
+    Src1Alpha,
+    InvertSrc1Alpha,
+};
+
+inline fn blendFunc2GL(func: BlendFunc) c.GLenum {
+    return switch (func) {
+        .Zero => c.GL_ZERO,
+        .One => c.GL_ONE,
+        .SrcColor => c.GL_SRC_COLOR,
+        .InvertSrcColor => c.GL_ONE_MINUS_SRC_COLOR,
+        .DstColor => c.GL_DST_COLOR,
+        .InvertDstColor => c.GL_ONE_MINUS_DST_COLOR,
+        .SrcAlpha => c.GL_SRC_ALPHA,
+        .InvertSrcAlpha => c.GL_ONE_MINUS_SRC_ALPHA,
+        .DstAlpha => c.GL_DST_ALPHA,
+        .InvertDstAlpha => c.GL_ONE_MINUS_DST_ALPHA,
+        .ConstantColor => c.GL_CONSTANT_COLOR,
+        .InvertConstantColor => c.GL_ONE_MINUS_CONSTANT_COLOR,
+        .ConstantAlpha => c.GL_CONSTANT_ALPHA,
+        .InvertConstantAlpha => c.GL_ONE_MINUS_CONSTANT_ALPHA,
+        .SrcAlphaSaturate => c.GL_SRC_ALPHA_SATURATE,
+        .Src1Color => c.GL_SRC1_COLOR,
+        .InvertSrc1Color => c.GL_ONE_MINUS_SRC1_COLOR,
+        .Src1Alpha => c.GL_SRC1_ALPHA,
+        .InvertSrc1Alpha => c.GL_ONE_MINUS_SRC1_ALPHA,
+    };
+}
+
+pub fn blendFunc(func: BlendFunc) void {
+    c.glBlendFunc(blendFunc2GL(func));
+}
+
 pub fn cullFace(face: Face) void {
     c.glCullFace(face2GL(face));
 }
