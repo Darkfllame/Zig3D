@@ -4,28 +4,26 @@
 
     .dependencies = .{
         .glfw = .{
-            .url = "https://github.com/hexops/glfw/archive/586e14a964740747ca7913fc17096b3bb3d52409.tar.gz",
-            .hash = "122091debcee20ff2aaf983a9e8c215d4e50cc6caf44975442218901ea728e7dd79a",
+            .url = "https://github.com/hexops/glfw/archive/8f7ca982913c0ab64df44d79d6ad2fb592e5ec39.tar.gz",
+            .hash = "122085745c053e68fea3772c7239c7c87bcc7f042fa3189592b30e0e39cbb9603d79",
         },
         .freetype = .{
-            .url = "https://github.com/hexops/freetype/archive/398638fd1cb723e478658ea371fe3be1a4dce0ae.tar.gz",
-            .hash = "12208c57b72e3fb5c8d5d3e667e2e21ca1d9e2b6fc3f84182b320f63933f591823da",
+            .url = "https://github.com/hexops/freetype/archive/a62aa6402fa0857723ac5556ddee98f038aec4e5.tar.gz",
+            .hash = "12209614e8bc8a6bde561b9c24b27a37f4ede244dba598b345cc56199fa7c6201f01",
         },
         .zlm = .{
-            .url = "https://github.com/ziglibs/zlm/archive/b0a06cf8c7173af88d710f25bb1f8fa77972689a.tar.gz",
-            .hash = "1220add113da7e335228cfc469bc907879df9f6d707ae5ff2c8ac6997bf2d58d931c",
+            .url = "https://github.com/ziglibs/zlm/archive/833031bfdbfd24526e4115a59459f9c360d7b824.tar.gz",
+            .hash = "12205dbec9f917a3ab61ca65900dce7a04c9ec4348d0e2241a9c246b9c2d131d061b",
         },
     },
 
     .paths = .{
-        "",
+        "src",
+        "include",
         "build.zig",
         "build.zig.zon",
-        "src/glad.c",
-        "src/glad.zig",
-        "src/glfw.zig",
-        "src/Key.zig",
-        "src/lib.zig",
-        "src/utils.zig",
+        ".gitignore",
+        "README.md",
+        "texture.png",
     },
 }
