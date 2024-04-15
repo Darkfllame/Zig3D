@@ -153,7 +153,7 @@ pub fn main() !void {
         .vertices = @constCast(triangleVertices),
         .indices = @constCast(triangleIndices),
     };
-    var glmesh = mesh.generate();
+    var glmesh = try mesh.generate();
     defer glmesh.deinit();
 
     glad.viewport(0, 0, 800, 600);
@@ -175,7 +175,7 @@ pub fn main() !void {
 
         program.useProgram();
         glmesh.vao.bind();
-        glad.drawElements(.Triangles, triangleIndices.len, u32, null);
+        try glad.drawElements(.Triangles, triangleIndices.len, u32, null);
         glad.VertexArray.unbindAny();
         glad.ShaderProgram.unuseAny();
 

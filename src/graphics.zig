@@ -81,17 +81,17 @@ pub const Mesh = struct {
         };
     }
 
-    pub fn generate(self: *const Mesh) GLMesh {
+    pub fn generate(self: *const Mesh) !GLMesh {
         const vao = glad.VertexArray.create();
         const buffers = glad.Buffer.createBuffers(2);
 
         vao.bind();
 
         buffers[0].bind(.Array);
-        buffers[0].data(Vertex, self.vertices, .StaticDraw);
+        try buffers[0].data(Vertex, self.vertices, .StaticDraw);
 
         buffers[1].bind(.ElementArray);
-        buffers[1].data(u32, self.indices, .StaticDraw);
+        try buffers[1].data(u32, self.indices, .StaticDraw);
 
         vao.vertexAttrib(0, 3, f32, false, @sizeOf(Vertex), 0);
         vao.vertexAttrib(1, 3, f32, false, @sizeOf(Vertex), @offsetOf(Vertex, "color"));
@@ -221,12 +221,12 @@ pub const MeshBatch = struct {
         return self.lastGeneratedMesh.?;
     }
 
-    pub fn draw(self: *MeshBatch) Allocator.Error!void {
-        var finalM = (try self.pack()).generate();
+    pub fn draw(self: *MeshBatch) !void {
+        var finalM = try (try self.pack()).generate();
         defer finalM.deinit();
 
         finalM.vao.bind();
-        glad.drawElements(.Triangles, self.indexCount, u32, null);
+        try glad.drawElements(.Triangles, self.indexCount, u32, null);
         glad.VertexArray.unbindAny();
     }
 };

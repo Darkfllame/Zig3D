@@ -163,6 +163,7 @@ pub fn build(b: *std.Build) void {
     makeDemo(b, libModule, "quadDemo", "quad", "Run the demo quad app", optimize, target);
     makeDemo(b, libModule, "batchDemo", "batch", "Run the batch demo app", optimize, target);
     makeDemo(b, libModule, "bindlessTexture", "texture", "Run the bindless texture demo app", optimize, target);
+    makeDemo(b, libModule, "shittyDemo", "shitty", "Run the shitty demo app", optimize, target);
 }
 
 fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, comptime path: []const u8, name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {

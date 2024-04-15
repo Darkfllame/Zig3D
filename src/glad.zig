@@ -2,7 +2,7 @@ const std = @import("std");
 const utils = @import("utils");
 const zlm = @import("zlm");
 const zlmd = @import("zlm").SpecializeOn(f64);
-const c = @cImport({
+pub const c = @cImport({
     @cInclude("GLAD/glad.h");
 });
 
@@ -74,9 +74,9 @@ fn errFromC(err: c.GLenum) Error {
 /// You can do try glad.checkError() to check for any
 /// OpenGL errors
 pub fn checkError() Error!void {
-    return switch (c.glGetError()) {
-        c.GL_NO_ERROR => {},
-        else => |e| errFromC(e),
+    return switch (errFromC(c.glGetError())) {
+        Error.NoError => {},
+        else => |e| e,
     };
 }
 
@@ -599,7 +599,7 @@ pub const Buffer = struct {
         return bufs;
     }
 
-    /// Creates a named buffer object
+    /// Creates a non-named buffer object
     ///
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glCreateBuffers.xhtml
     pub fn create() Buffer {
@@ -607,7 +607,7 @@ pub const Buffer = struct {
         c.glCreateBuffers(1, @ptrCast(&buf.id));
         return buf;
     }
-    /// Creates a named buffer object slice
+    /// Creates a non-named buffer object slice
     ///
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glCreateBuffers.xhtml
     pub fn createSlice(allocator: Allocator, count: usize) Error![]Buffer {
@@ -616,7 +616,7 @@ pub const Buffer = struct {
         c.glCreateBuffers(@intCast(count), @ptrCast(slice.ptr));
         return slice;
     }
-    /// Creates a named buffer object array
+    /// Creates a non-named buffer object array
     ///
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glCreateBuffers.xhtml
     pub fn createBuffers(comptime N: comptime_int) [N]Buffer {
@@ -645,24 +645,26 @@ pub const Buffer = struct {
     /// sets data for named buffer object
     ///
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml
-    pub fn data(self: Buffer, comptime T: type, dat: []const T, access: DataAccess) void {
+    pub fn data(self: Buffer, comptime T: type, dat: []const T, access: DataAccess) Error!void {
         c.glNamedBufferData(
             @intCast(self.id),
             @intCast(dat.len * @sizeOf(T)),
             @ptrCast(dat.ptr),
             dataAccedd2GL(access),
         );
+        try checkError();
     }
     /// sets data for non-named buffer object
     ///
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml
-    pub fn dataTarget(target: BufferType, comptime T: type, dat: []const T, access: DataAccess) void {
+    pub fn dataTarget(target: BufferType, comptime T: type, dat: []const T, access: DataAccess) Error!void {
         c.glBufferData(
             bufferType2GL(target),
             @intCast(dat.len * @sizeOf(T)),
             @ptrCast(dat.ptr),
             dataAccedd2GL(access),
         );
+        try checkError();
     }
 };
 
@@ -946,8 +948,93 @@ inline fn drawMod2GL(mode: DrawMode) c.GLenum {
     };
 }
 
-pub fn drawElements(mode: DrawMode, count: usize, comptime T: type, indices: ?*const anyopaque) void {
-    c.glDrawElements(drawMod2GL(mode), @intCast(count), type2GL(T), indices);
+pub fn drawElements(mode: DrawMode, count: usize, comptime T: type, indices: ?*const anyopaque) Error!void {
+    c.glDrawElements(
+        drawMod2GL(mode),
+        @intCast(count),
+        type2GL(T),
+        indices,
+    );
+    try checkError();
+}
+
+pub fn drawElementsInstanced(mode: DrawMode, count: usize, comptime T: type, indices: ?*const anyopaque, instanceCount: u32) Error!void {
+    c.glDrawElementsInstanced(
+        drawMod2GL(mode),
+        @intCast(count),
+        type2GL(T),
+        indices,
+        @intCast(instanceCount),
+    );
+    try checkError();
+}
+
+pub const DrawElementsIndirectCommand = struct {
+    count: u32,
+    instanceCount: u32,
+    firstIndex: u32,
+    baseVertex: i32,
+    baseInstance: u32,
+};
+
+pub fn drawElementsIndirect(mode: DrawMode, comptime T: type, indirect: *const DrawElementsIndirectCommand) Error!void {
+    c.glDrawElementsIndirect(
+        drawMod2GL(mode),
+        type2GL(T),
+        @ptrCast(indirect),
+    );
+    try checkError();
+}
+
+pub fn drawArrays(mode: DrawMode, first: u32, count: u32) Error!void {
+    c.glDrawArrays(drawMod2GL(mode), @intCast(first), @intCast(count));
+    try checkError();
+}
+
+pub fn drawArraysInstanced(mode: DrawMode, first: u32, count: u32, instanceCount: u32) Error!void {
+    c.glDrawArraysInstanced(
+        drawMod2GL(mode),
+        @intCast(first),
+        @intCast(count),
+        @intCast(instanceCount),
+    );
+    try checkError();
+}
+
+pub const DrawArraysIndirectCommand = struct {
+    count: u32,
+    instanceCount: u32,
+    first: u32,
+    baseInstance: u32,
+};
+
+pub fn drawArraysIndirect(mode: DrawMode, indirect: *const DrawArraysIndirectCommand) Error!void {
+    c.glDrawArraysIndirect(
+        drawMod2GL(mode),
+        @ptrCast(indirect),
+    );
+    try checkError();
+}
+
+pub fn multiDrawArraysIndirect(mode: DrawMode, indirect: []const DrawArraysIndirectCommand) Error!void {
+    c.glMultiDrawArraysIndirect(
+        drawMod2GL(mode),
+        @ptrCast(indirect),
+        @intCast(indirect.len),
+        0,
+    );
+    try checkError();
+}
+
+pub fn drawArraysInstancedBaseInstance(mode: DrawMode, first: u32, count: u32, instanceCount: u32, baseInstance: u32) Error!void {
+    c.glDrawArraysInstancedBaseInstance(
+        mode,
+        first,
+        count,
+        instanceCount,
+        baseInstance,
+    );
+    try checkError();
 }
 
 pub const Face = enum {
@@ -978,8 +1065,8 @@ inline fn faceMode2GL(mode: FaceMode) c.GLenum {
     };
 }
 
-pub fn polygonMode(face: Face, mode: FaceMode) void {
-    c.glPolygonMode(face2GL(face), faceMode2GL(mode));
+pub fn polygonMode(mode: FaceMode) void {
+    c.glPolygonMode(c.GL_FRONT_AND_BACK, faceMode2GL(mode));
 }
 
 pub const TextureType = enum {
@@ -1449,7 +1536,7 @@ pub const Texture = struct {
             inline .Enum, .EnumLiteral => try self.textureParamEnum(param, value),
             inline .Int => try self.textureParamInt(param, value),
             inline .Float => try self.textureParamFloat(param, value),
-            inline .ComptimeFloat, .ComptimeInt => @compileError("Comptime values aren't accepted to textureParam"),
+            inline .ComptimeFloat, .ComptimeInt => @compileError("Comptime values aren't accepted in textureParam"),
             else => @compileError("Invalid texture parameter type: " ++ @typeName(T)),
         }
     }
@@ -1568,7 +1655,7 @@ pub const Texture = struct {
         }
     }
 
-    pub fn texParam(@"type": TextureType, param: TextureParameter, value: anytype) ParamError!void {
+    pub fn texParam(@"type": TextureType, param: TextureParameter, value: anytype) (ParamError || Error)!void {
         const T = @TypeOf(value);
         const tinfo = @typeInfo(T);
 
@@ -1579,6 +1666,7 @@ pub const Texture = struct {
             inline .ComptimeFloat, .ComptimeInt => @compileError("Comptime values aren't accepted to textureParam"),
             else => @compileError("Invalid texture parameter type: " ++ @typeName(T)),
         }
+        try checkError();
     }
 
     pub fn textureStorage(self: Texture, comptime dim: u2, levels: u32, format: TextureFormat, width: u32, height: u32, depth: u32) void {
@@ -1634,7 +1722,7 @@ pub const Texture = struct {
         }
     }
 
-    pub fn texImage(comptime dim: u2, @"type": TextureType, level: u32, format: BaseTextureFormat, width: u32, height: u32, depth: u32, comptime T: type, data: []T) void {
+    pub fn texImage(comptime dim: u2, @"type": TextureType, level: u32, format: BaseTextureFormat, width: u32, height: u32, depth: u32, comptime T: type, data: []const T) Error!void {
         switch (dim) {
             inline 1 => c.glTexImage1D(
                 texType2GL(@"type"),
@@ -1671,6 +1759,7 @@ pub const Texture = struct {
             ),
             inline else => @compileError(std.fmt.comptimePrint("Cannot call glTexImage with {d} dimensions", .{dim})),
         }
+        try checkError();
     }
 
     pub fn generateMipmap(@"type": TextureType) void {
@@ -1678,7 +1767,7 @@ pub const Texture = struct {
     }
 
     pub fn active(slot: u32) void {
-        c.glActiveTexture(@intCast(slot));
+        c.glActiveTexture(c.GL_TEXTURE0 + @as(c_int, @intCast(slot)));
     }
 
     pub fn bindImageTexture(self: Texture, unit: u32, level: u32, layered: bool, layer: u32, access: TextureAccess, format: TextureFormat) void {
@@ -1714,13 +1803,24 @@ pub const TextureHandle = struct {
     }
 };
 
+inline fn checkSize(comptime T: type, comptime bitSize: comptime_int) void {
+    if (@bitSizeOf(T) != bitSize)
+        @compileError(std.fmt.comptimePrint(
+            "{s} is not {d} bits wide but {d}.",
+            .{
+                @typeName(T),
+                bitSize,
+                @bitSizeOf(T),
+            },
+        ));
+}
+
 // check for gl struct sizes, avoid unwanted "undefined" behaviour
 comptime {
-    if (@sizeOf(VertexArray) != @sizeOf(u32)) @compileError("Size of VertexArray is not the same as the size of u32");
-    if (@sizeOf(Buffer) != @sizeOf(u32)) @compileError("Size of Buffer is not the same as the size of u32");
-    if (@sizeOf(Texture) != @sizeOf(u32)) @compileError("Size of Texture is not the same as the size of u32");
-    if (@sizeOf(Shader) != @sizeOf(u32)) @compileError("Size of Shader is not the same as the size of u32");
-    if (@sizeOf(ShaderProgram) != @sizeOf(u32)) @compileError("Size of ShaderProgram is not the same as the size of u32");
-    if (@sizeOf(Texture) != @sizeOf(u32)) @compileError("Size of Texture is not the same as the size of u32");
-    if (@sizeOf(TextureHandle) != @sizeOf(u64)) @compileError("Size of TextureHandle is not the same as the size of u32");
+    checkSize(VertexArray, 32);
+    checkSize(Buffer, 32);
+    checkSize(Shader, 32);
+    checkSize(ShaderProgram, 32);
+    checkSize(Texture, 32);
+    checkSize(TextureHandle, 64);
 }

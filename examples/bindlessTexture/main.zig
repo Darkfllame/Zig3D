@@ -165,15 +165,12 @@ pub fn main() !void {
     stb.setFlipVerticallyOnLoad(true);
 
     var texture = textureBlk: {
-        var atlasImage = (stb.Image.load(allocator, "texture.png", &errStr) catch {
-            return zig3d.println("Ran out of memory", .{});
-        }) orelse return zig3d.println("Error occurred: Cannot load image: {s}", .{errStr});
+        var atlasImage = stb.Image.loadZ("texture.png", &errStr) orelse return zig3d.println("Error occurred: Cannot load image: {s}", .{errStr});
         defer atlasImage.delete();
 
         var tex = glad.Texture.gen();
         errdefer tex.destroy();
 
-        glad.Texture.active(0);
         tex.bind(.Texture2D);
 
         try glad.Texture.texParam(.Texture2D, .MinFilter, .Nearest);
@@ -182,7 +179,7 @@ pub fn main() !void {
         try glad.Texture.texParam(.Texture2D, .WrapS, .Repeat);
         try glad.Texture.texParam(.Texture2D, .WrapT, .Repeat);
 
-        glad.Texture.texImage(
+        try glad.Texture.texImage(
             2,
             .Texture2D,
             0,
