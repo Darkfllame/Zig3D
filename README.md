@@ -4,14 +4,7 @@ The Zig3D library is maintaned by [me](https://github.com/Darkfllame/) and is ma
 
 ## How to use
 
-To use this library you have to add a dependency in your `build.zig.zon` file:
-```zig
-.zig3d = .{
-  .url = "https://github.com/Darkfllame/Zig3D/archive/3229e8e36e28484c279decb21595056c1d99c395.tar.gz",
-  .hash = "1220112bf8beb7a76ee5ea00d55d3c567bdef4070b36a54978460eee31da71ed17a6",
-},
-```
-For the latest update.
+To use this library you have to fetch it with zig: `zig fetch --save=zig3d https://github.com/Darkfllame/Zig3D/archive/master.tar.gz` for the latest update.
 
 ##
 
