@@ -946,22 +946,22 @@ inline fn drawMod2GL(mode: DrawMode) c.GLenum {
     };
 }
 
-pub fn drawElements(mode: DrawMode, count: usize, comptime T: type, indices: ?*const anyopaque) Error!void {
+pub fn drawElements(mode: DrawMode, count: usize, comptime T: type, indices: usize) Error!void {
     c.glDrawElements(
         drawMod2GL(mode),
         @intCast(count),
         type2GL(T),
-        indices,
+        @ptrFromInt(indices),
     );
     try checkError();
 }
 
-pub fn drawElementsInstanced(mode: DrawMode, count: usize, comptime T: type, indices: ?*const anyopaque, instanceCount: u32) Error!void {
+pub fn drawElementsInstanced(mode: DrawMode, count: usize, comptime T: type, indices: usize, instanceCount: u32) Error!void {
     c.glDrawElementsInstanced(
         drawMod2GL(mode),
         @intCast(count),
         type2GL(T),
-        indices,
+        @ptrFromInt(indices),
         @intCast(instanceCount),
     );
     try checkError();
