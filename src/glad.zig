@@ -704,19 +704,17 @@ pub const Shader = struct {
     // Error type was too long
     pub fn sourceFile(self: *const Shader, allocator: Allocator, filename: []const u8) utils.FnErrorSet(utils.readFile)!*const Shader {
         const content = try utils.readFile(allocator, filename);
-        _ = try self.source(content);
-        allocator.free(content);
-        return self;
+        defer allocator.free(content);
+        return self.source(content);
     }
-    pub fn source(self: *const Shader, src: []const u8) *const Shader {
-        const lens: []const c_int = &.{
-            @intCast(src.len),
-        };
+    pub fn source(self: *const Shader, src: [:0]const u8) *const Shader {
+        // for some reasons the lengths arguments on this functions
+        // doesn't work as intended. This is irritating.
         c.glShaderSource(
             @intCast(self.id),
             1,
-            @ptrCast(&src.ptr),
-            @ptrCast(lens.ptr),
+            &src.ptr,
+            null,
         );
         return self;
     }

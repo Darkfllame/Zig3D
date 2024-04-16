@@ -40,7 +40,8 @@ pub fn slice2ZSent(allocator: Allocator, slice: []const u8) Allocator.Error![:0]
     return block[0..slice.len :0];
 }
 
-pub fn readFile(allocator: Allocator, filename: []const u8) (File.ReadError || File.OpenError || Allocator.Error || fs.SelfExePathError)![]u8 {
+// return a null-terminated string by default
+pub fn readFile(allocator: Allocator, filename: []const u8) (File.ReadError || File.OpenError || Allocator.Error || fs.SelfExePathError)![:0]u8 {
     const SEPARATOR = comptime if (@import("builtin").os.tag == .windows) "\\" else "/";
 
     const file = fs.cwd().openFile(filename, .{}) catch |e| blk: {
@@ -60,7 +61,12 @@ pub fn readFile(allocator: Allocator, filename: []const u8) (File.ReadError || F
     };
     defer file.close();
 
-    return @errorCast(file.reader().readAllAlloc(allocator, comptime @truncate(-1)));
+    // as I read, it is unexpected to get an error here
+    const sz = file.getEndPos() catch unreachable;
+    const buf = try allocator.allocSentinel(u8, sz, 0);
+    errdefer allocator.free(buf);
+    _ = try file.read(buf);
+    return buf;
 }
 
 pub fn FnErrorSet(comptime F: anytype) type {
