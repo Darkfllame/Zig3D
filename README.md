@@ -4,7 +4,7 @@ The Zig3D library is maintaned by [me](https://github.com/Darkfllame/) and is ma
 
 ## How to use
 
-To use this library you have to fetch it with zig: `zig fetch --save=zig3d https://github.com/Darkfllame/Zig3D/archive/master.tar.gz` for the latest update.
+To use this library you have to fetch it with zig: `zig fetch --save=zig3d https://github.com/Darkfllame/Zig3D/archive/<commit>.tar.gz`, replace `<commit>` by the commit hash of you choice or replace it with `main` (or `master`, the two works the same) for the latest update.
 
 ##
 
@@ -29,6 +29,6 @@ You can check out the [demos](examples/) for examples on how to use the library.
 
 Feel free to use, test it and give me ideas for this, you can also help me by proposing [pull requests](https://github.com/Darkfllame/Zig3D/pulls).
 
-## The only slight little problem right now
+## Now on 0.12.0
 
-Because of the (not existing) current version of hexops's GLFW working with zig's master, i'm using the [0.12.0-dev.3522+b88ae8dbd](https://ziglang.org/builds/zig-windows-x86_64-0.12.0-dev.3522%2Bb88ae8dbd.zip) version (April 3 2024) along with a pre april 3 zls version
+Now works on zig 0.12.0, probably will update it further more on more recent zig updates.
