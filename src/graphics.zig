@@ -226,7 +226,7 @@ pub const MeshBatch = struct {
         defer finalM.deinit();
 
         finalM.vao.bind();
-        try glad.drawElements(.Triangles, self.indexCount, u32, null);
+        try glad.drawElements(.Triangles, self.indexCount, u32, 0);
         glad.VertexArray.unbindAny();
     }
 };

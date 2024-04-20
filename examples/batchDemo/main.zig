@@ -18,7 +18,7 @@ const triangleIndices: []const u32 = &.{
     0, 2, 3,
 };
 
-const vertexShaderSource: []const u8 =
+const vertexShaderSource =
     \\#version 460 core
     \\layout (location = 0) in vec3 aPos;
     \\layout (location = 1) in vec3 aCol;
@@ -33,7 +33,7 @@ const vertexShaderSource: []const u8 =
     \\  UV = aUV;
     \\}
 ;
-const fragmentShaderSource: []const u8 =
+const fragmentShaderSource =
     \\#version 460 core
     \\
     \\out vec4 FragColor;

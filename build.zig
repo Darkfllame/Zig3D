@@ -25,24 +25,24 @@ pub fn build(b: *std.Build) void {
     const zlm = b.dependency("zlm", .{});
 
     const freetypeModule = b.addModule("freetype", .{
-        .root_source_file = .{ .path = "src/freetype.zig" },
+        .root_source_file = b.path("src/freetype.zig"),
     });
     freetypeModule.linkLibrary(freetype.artifact("freetype"));
 
     const KeyModule = b.createModule(.{
-        .root_source_file = .{ .path = "src/Key.zig" },
+        .root_source_file = b.path("src/Key.zig"),
         .optimize = optimize,
         .target = target,
     });
 
     const utilsModule = b.createModule(.{
-        .root_source_file = .{ .path = "src/utils.zig" },
+        .root_source_file = b.path("src/utils.zig"),
         .optimize = optimize,
         .target = target,
     });
 
     const glfwModule = b.addModule("glfw", .{
-        .root_source_file = .{ .path = "src/glfw.zig" },
+        .root_source_file = b.path("src/glfw.zig"),
         .link_libc = true,
         .optimize = optimize,
         .target = target,
@@ -60,7 +60,7 @@ pub fn build(b: *std.Build) void {
     glfwModule.linkLibrary(glfw.artifact("glfw"));
 
     const gladModule = b.addModule("glad", .{
-        .root_source_file = .{ .path = "src/glad.zig" },
+        .root_source_file = b.path("src/glad.zig"),
         .link_libc = true,
         .optimize = optimize,
         .target = target,
@@ -75,11 +75,11 @@ pub fn build(b: *std.Build) void {
             },
         },
     });
-    gladModule.addIncludePath(.{ .path = "include/" });
-    gladModule.addCSourceFile(.{ .file = .{ .path = "src/glad.c" } });
+    gladModule.addIncludePath(b.path("include/"));
+    gladModule.addCSourceFile(.{ .file = b.path("src/glad.c") });
 
     const imageModule = b.addModule("image", .{
-        .root_source_file = .{ .path = "src/image.zig" },
+        .root_source_file = b.path("src/image.zig"),
         .optimize = optimize,
         .target = target,
         .imports = &.{
@@ -95,7 +95,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const stbModule = b.addModule("stb", .{
-        .root_source_file = .{ .path = "src/stb.zig" },
+        .root_source_file = b.path("src/stb.zig"),
         .link_libc = true,
         .optimize = optimize,
         .target = target,
@@ -114,16 +114,16 @@ pub fn build(b: *std.Build) void {
             },
         },
     });
-    stbModule.addIncludePath(.{ .path = "include/" });
+    stbModule.addIncludePath(b.path("include/"));
     stbModule.addCSourceFile(.{
-        .file = .{ .path = "src/stbdefs.c" },
+        .file = b.path("src/stbdefs.c"),
         .flags = &.{
             "-Iinclude",
         },
     });
 
     const libModule = b.addModule("zig3d", .{
-        .root_source_file = .{ .path = "src/lib.zig" },
+        .root_source_file = b.path("src/lib.zig"),
         .link_libc = true,
         .optimize = optimize,
         .target = target,
@@ -169,7 +169,7 @@ pub fn build(b: *std.Build) void {
 fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, comptime path: []const u8, name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {
     const demo = b.addExecutable(.{
         .name = name,
-        .root_source_file = .{ .path = "examples/" ++ path ++ "/main.zig" },
+        .root_source_file = b.path("examples/" ++ path ++ "/main.zig"),
         .optimize = optimize,
         .target = target,
     });
