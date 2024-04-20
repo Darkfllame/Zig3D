@@ -4,7 +4,7 @@ The Zig3D library is maintaned by [me](https://github.com/Darkfllame/) and is ma
 
 ## How to use
 
-To use this library you have to fetch it with zig: `zig fetch --save=zig3d https://github.com/Darkfllame/Zig3D/archive/master.tar.gz` for the latest update.
+To use this library you have to fetch it with zig: `zig fetch --save=zig3d https://github.com/Darkfllame/Zig3D/archive/<commit>.tar.gz`, replace `<commit>` by the commit hash of you choice or replace it with `main` (or `master`, the two works the same) for the latest update.
 
 ##
 
