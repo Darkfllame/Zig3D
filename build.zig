@@ -159,26 +159,26 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    makeDemo(b, libModule, "simpleDemo", "demo", "Run the simple demo app", optimize, target);
-    makeDemo(b, libModule, "quadDemo", "quad", "Run the demo quad app", optimize, target);
-    makeDemo(b, libModule, "batchDemo", "batch", "Run the batch demo app", optimize, target);
-    makeDemo(b, libModule, "bindlessTexture", "texture", "Run the bindless texture demo app", optimize, target);
-    makeDemo(b, libModule, "shittyDemo", "shitty", "Run the shitty demo app", optimize, target);
+    makeDemo(b, libModule, "demo", "Run the simple demo app", optimize, target);
+    makeDemo(b, libModule, "quad", "Run the demo quad app", optimize, target);
+    makeDemo(b, libModule, "batch", "Run the batch demo app", optimize, target);
+    makeDemo(b, libModule, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
+    makeDemo(b, libModule, "tryinSomething", "Run the shitty demo app", optimize, target);
 }
 
-fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, comptime path: []const u8, name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {
+fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, comptime name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {
     const demo = b.addExecutable(.{
         .name = name,
-        .root_source_file = b.path("examples/" ++ path ++ "/main.zig"),
+        .root_source_file = b.path("examples/" ++ name ++ "/main.zig"),
         .optimize = optimize,
         .target = target,
     });
     demo.root_module.addImport("zig3d", libmodule);
 
-    b.installArtifact(demo);
+    const install = b.addInstallArtifact(demo, .{});
 
     const demo_run = b.addRunArtifact(demo);
-    demo_run.step.dependOn(b.getInstallStep());
+    demo_run.step.dependOn(&install.step);
 
     if (b.args) |args| {
         demo_run.addArgs(args);
