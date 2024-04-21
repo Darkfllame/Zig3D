@@ -5,7 +5,12 @@ const c = @cImport({
     @cInclude("freetype/freetype.h");
     @cInclude("ft2build.h");
 });
-pub usingnamespace c;
+
+pub usingnamespace if (@import("build_options").exposeC) struct {
+    pub const capi = c;
+} else struct {
+    pub const capi = c;
+};
 
 pub const Error = error{
     Ok,

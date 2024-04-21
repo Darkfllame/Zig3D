@@ -4,7 +4,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const buildAllDemos = b.option(bool, "buildAllDemos", "set wether to force building all the demos") orelse false;
+    const options = b.addOptions();
+
+    const exposeC = b.option(bool, "exposeC", "set whether to expose the underlaying c API of the wrappers") orelse false;
+    const buildAllDemos = b.option(bool, "buildAllDemos", "set whether to force building all the demos") orelse false;
+
+    options.addOption(bool, "exposeC", exposeC);
+
+    const build_options = options.createModule();
 
     const glfw = b.dependency("glfw", .{
         .optimize = optimize,
@@ -28,6 +35,12 @@ pub fn build(b: *std.Build) void {
 
     const freetypeModule = b.addModule("freetype", .{
         .root_source_file = b.path("src/freetype.zig"),
+        .imports = &.{
+            .{
+                .name = "build_options",
+                .module = build_options,
+            },
+        },
     });
     freetypeModule.linkLibrary(freetype.artifact("freetype"));
 
@@ -57,6 +70,10 @@ pub fn build(b: *std.Build) void {
                 .name = "utils",
                 .module = utilsModule,
             },
+            .{
+                .name = "build_options",
+                .module = build_options,
+            },
         },
     });
     glfwModule.linkLibrary(glfw.artifact("glfw"));
@@ -74,6 +91,10 @@ pub fn build(b: *std.Build) void {
             .{
                 .name = "zlm",
                 .module = zlm.module("zlm"),
+            },
+            .{
+                .name = "build_options",
+                .module = build_options,
             },
         },
     });
@@ -113,6 +134,10 @@ pub fn build(b: *std.Build) void {
             .{
                 .name = "image",
                 .module = imageModule,
+            },
+            .{
+                .name = "build_options",
+                .module = build_options,
             },
         },
     });

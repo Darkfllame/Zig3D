@@ -7,6 +7,10 @@ const c = @cImport({
     @cInclude("string.h");
 });
 
+pub usingnamespace if (@import("build_options").exposeC) struct {
+    pub const capi = c;
+} else struct {};
+
 const Allocator = std.mem.Allocator;
 
 pub fn setFlipVerticallyOnLoad(b: bool) void {

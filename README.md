@@ -13,6 +13,7 @@ After adding the dependency, you'll need to add:
 const zig3d = b.dependency("zig3d", .{
   .optimize = optimize,
   .target = target,
+  .exposeC = true, // optional, set whether to expose c apis under a "capi" namespace. This is for glad, glfw, stb and freetype (even though freetype is always exposed since I did not make the zig API yet)
 });
 
 ...
