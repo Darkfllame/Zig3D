@@ -27,8 +27,9 @@ const vertexShaderSource =
     \\out vec3 color;
     \\
     \\void main() {
-    \\  gl_Position = vec4(offset + aPos, 1);
-    \\  color = aCol;
+    \\  vec3 finalPos = offset + aPos;
+    \\  gl_Position = vec4(finalPos, 1);
+    \\  color = vec3(finalPos.x + 0.5, finalPos.y + 0.5, 0);
     \\}
 ;
 const fragmentShaderSource =
@@ -220,7 +221,7 @@ pub fn main() !void {
             offsets[6] = @floatCast(@sin(zig3d.toRadians * (nowRot - 180)));
             offsets[7] = @floatCast(@cos(zig3d.toRadians * (nowRot - 180)));
             IBO.bind(.Array);
-            glad.Buffer.subdataTarget(.Array, 0, f32, &offsets) catch unreachable;
+            glad.Buffer.subdataTarget(.Array, 3, f32, offsets[3..8]) catch unreachable;
             glad.Buffer.unbindAny(.Array);
         }
 

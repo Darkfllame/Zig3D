@@ -1220,7 +1220,7 @@ pub const Buffer = struct {
     pub fn subdataTarget(target: BufferType, offset: usize, comptime T: type, dat: []const T) Error!void {
         c.glBufferSubData(
             bufferType2GL(target),
-            @intCast(offset),
+            @intCast(offset * @sizeOf(T)),
             @intCast(dat.len * @sizeOf(T)),
             @ptrCast(dat.ptr),
         );
