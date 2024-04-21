@@ -221,7 +221,7 @@ pub fn main() !void {
         );
 
         program.useProgram();
-        program.setUniform("tex", textureHandle);
+        try program.setUniform("tex", textureHandle);
         try batch.draw();
         glad.ShaderProgram.unuseAny();
 

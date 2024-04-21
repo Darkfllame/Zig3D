@@ -1408,11 +1408,11 @@ pub const ShaderProgram = struct {
         const tinfo = @typeInfo(T);
 
         switch (tinfo) {
-            inline .Struct, .Int, .Float => setUniformLoc(self, location, [1]T{value}),
+            inline .Struct, .Int, .Float => try setUniformLoc(self, location, [1]T{value}),
             inline .Array => |d| @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), d.len, @ptrCast(@alignCast(&value))),
             inline .Pointer => |d| {
                 switch (d.size) {
-                    .One => setUniformLoc(self, location.?, value.*),
+                    .One => try setUniformLoc(self, location.?, value.*),
                     .Slice => @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), @intCast(value.len), @ptrCast(@alignCast(value))),
                     else => @compileError("Pointers passed to ShaderProgram.setUniformLoc() must be pointer-to-one or slice, got " ++ @tagName(d.size)),
                 }

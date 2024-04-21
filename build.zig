@@ -4,6 +4,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const buildAllDemos = b.option(bool, "buildAllDemos", "set wether to force building all the demos") orelse false;
+
     const glfw = b.dependency("glfw", .{
         .optimize = optimize,
         .target = target,
@@ -159,14 +161,14 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    makeDemo(b, libModule, "demo", "Run the simple demo app", optimize, target);
-    makeDemo(b, libModule, "quad", "Run the demo quad app", optimize, target);
-    makeDemo(b, libModule, "batch", "Run the batch demo app", optimize, target);
-    makeDemo(b, libModule, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
-    makeDemo(b, libModule, "tryinSomething", "Run the shitty demo app", optimize, target);
+    makeDemo(b, libModule, buildAllDemos, "demo", "Run the simple demo app", optimize, target);
+    makeDemo(b, libModule, buildAllDemos, "quad", "Run the demo quad app", optimize, target);
+    makeDemo(b, libModule, buildAllDemos, "batch", "Run the batch demo app", optimize, target);
+    makeDemo(b, libModule, buildAllDemos, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
+    makeDemo(b, libModule, buildAllDemos, "tryinSomething", "Run the shitty demo app", optimize, target);
 }
 
-fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, comptime name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {
+fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, forceInstall: bool, comptime name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {
     const demo = b.addExecutable(.{
         .name = name,
         .root_source_file = b.path("examples/" ++ name ++ "/main.zig"),
@@ -176,6 +178,9 @@ fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, comptime name: []const 
     demo.root_module.addImport("zig3d", libmodule);
 
     const install = b.addInstallArtifact(demo, .{});
+    if (forceInstall) {
+        b.install_tls.step.dependOn(&install.step);
+    }
 
     const demo_run = b.addRunArtifact(demo);
     demo_run.step.dependOn(&install.step);

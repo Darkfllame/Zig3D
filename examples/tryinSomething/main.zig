@@ -205,7 +205,7 @@ pub fn main() !void {
     textureHandle.makeResident();
 
     program.useProgram();
-    program.setUniform("tex", textureHandle);
+    try program.setUniform("tex", textureHandle);
 
     glad.viewport(0, 0, 800, 600);
     glad.enable(.CullFace);
