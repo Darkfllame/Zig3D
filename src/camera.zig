@@ -1,5 +1,5 @@
-const std = @import("std");
 const zlm = @import("zig3d").zlm;
+const std = @import("std");
 
 const Vec3f = zlm.Vec3;
 
@@ -30,10 +30,10 @@ pub const Camera = struct {
         self.height = nheight;
     }
 
-    pub fn transform(self: *Camera, v: Vec3f) void {
+    pub fn translate(self: *Camera, v: Vec3f) void {
         self.position = self.position.add(v);
     }
-    pub fn transformXYZ(self: *Camera, x: f32, y: f32, z: f32) void {
+    pub fn translateXYZ(self: *Camera, x: f32, y: f32, z: f32) void {
         self.position = self.position.add(zlm.vec3(x, y, z));
     }
 
@@ -47,15 +47,13 @@ pub const Camera = struct {
     }
     pub fn viewMatrix(self: Camera) Mat4f {
         return Mat4f.batchMul(&.{
-            Mat4f.identity,
             Mat4f.createTranslation(self.position),
-            Mat4f.createAngleAxis(Vec3f.unitX, zlm.toRadians(self.pitch)),
             Mat4f.createAngleAxis(Vec3f.unitY, zlm.toRadians(self.yaw)),
+            Mat4f.createAngleAxis(Vec3f.unitX, zlm.toRadians(self.pitch)),
         });
     }
     pub fn camMatrix(self: Camera) Mat4f {
         return Mat4f.batchMul(&.{
-            Mat4f.identity,
             self.projectionMatrix(),
             self.camMatrix(),
         });
