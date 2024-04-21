@@ -172,7 +172,7 @@ pub const WindowHint = struct {
     robustness: Robustness = .NoRobustness,
     releaseBehaviour: ReleaseBehaviour = .Any,
     forwardCompat: bool = false,
-    debugContext: bool = false,
+    debug: bool = false,
     openglProfile: OpenglProfile = .Any,
     cocoaRetinaFramebuffer: bool = true,
     cocoaFrameName: [:0]const u8 = "",
@@ -224,7 +224,7 @@ fn windowHint(hint: WindowHint) void {
     wHint(c.GLFW_CONTEXT_ROBUSTNESS, @intCast(@intFromEnum(hint.robustness)));
     wHint(c.GLFW_CONTEXT_RELEASE_BEHAVIOR, @intCast(@intFromEnum(hint.releaseBehaviour)));
     wHint(c.GLFW_OPENGL_FORWARD_COMPAT, boolToGlfw(hint.forwardCompat));
-    wHint(c.GLFW_OPENGL_DEBUG_CONTEXT, boolToGlfw(hint.debugContext));
+    wHint(c.GLFW_OPENGL_DEBUG_CONTEXT, boolToGlfw(hint.debug));
     wHint(c.GLFW_OPENGL_PROFILE, @intCast(@intFromEnum(hint.openglProfile)));
     wHint(c.GLFW_COCOA_RETINA_FRAMEBUFFER, boolToGlfw(hint.cocoaRetinaFramebuffer));
     wHintS(c.GLFW_COCOA_FRAME_NAME, hint.cocoaFrameName.ptr);

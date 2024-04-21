@@ -1100,8 +1100,11 @@ pub const VertexArray = struct {
     pub fn enableAttrib(self: VertexArray, location: u32) void {
         c.glEnableVertexArrayAttrib(@intCast(self.id), @intCast(location));
     }
-    pub fn vertexAttrib(self: VertexArray, location: u32, size: u32, comptime T: type, normalized: bool, stride: usize, offset: usize) void {
-        self.bind();
+    pub fn disableAttrib(self: VertexArray, location: u32) void {
+        c.glDisableVertexArrayAttrib(@intCast(self.id), @intCast(location));
+    }
+
+    pub fn vertexAttrib(location: u32, size: u32, comptime T: type, normalized: bool, stride: usize, offset: usize) void {
         c.glVertexAttribPointer(
             location,
             @bitCast(size),
@@ -1110,7 +1113,11 @@ pub const VertexArray = struct {
             @intCast(stride),
             @ptrFromInt(offset),
         );
-        unbindAny();
+    }
+
+    pub fn vertexAttribDivisor(location: u32, divisor: u32) Error!void {
+        c.glVertexAttribDivisor(@intCast(location), @intCast(divisor));
+        try checkError();
     }
 };
 

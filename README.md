@@ -26,6 +26,8 @@ to your `build.zig` file.
 
 You can check out the [demos](examples/) for examples on how to use the library.
 
+By the way, there is low (no) documentation, so you'll need to check out on khronos group's site for errors and what parameters do. 
+
 ## Help me I guess.
 
 Feel free to use, test it and give me ideas for this, you can also help me by proposing [pull requests](https://github.com/Darkfllame/Zig3D/pulls).

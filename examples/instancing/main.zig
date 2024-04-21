@@ -5,13 +5,20 @@ const glfw = zig3d.glfw;
 const glad = zig3d.glad;
 const stb = zig3d.stb;
 
+const IS_DEBUG = @import("builtin").mode == .Debug;
+
 const vertices: []const f32 = &.{
-    // x    y   z  r  g  b  u  v
-    -0.5, -0.5, 0, 0, 0, 0, 0, 0,
-    0.5,  -0.5, 0, 1, 0, 0, 1, 0,
-    0.5,  0.5,  0, 1, 1, 0, 1, 1,
-    -0.5, 0.5,  0, 0, 1, 0, 0, 1,
-    -0.5, -0.5, 0, 0, 0, 0, 0, 0,
+    // x    y   z  r  g  b
+    -0.5, -0.5, 0, 0, 0, 0,
+    0.5,  -0.5, 0, 1, 0, 0,
+    0.5,  0.5,  0, 1, 1, 0,
+    -0.5, 0.5,  0, 0, 1, 0,
+    -0.5, -0.5, 0, 0, 0, 0,
+};
+const offsets: []const f32 = &.{
+    0.0,  0.0,  0.0,
+    0.5,  0.5,  0.5,
+    -0.5, -0.5, -0.5,
 };
 
 const vertexShaderSource =
@@ -19,30 +26,25 @@ const vertexShaderSource =
     \\
     \\layout (location = 0) in vec3 aPos;
     \\layout (location = 1) in vec3 aCol;
-    \\layout (location = 2) in vec2 aUV;
+    \\
+    \\layout (location = 2) in vec3 offset;
     \\
     \\out vec3 color;
-    \\out vec2 uv;
     \\
     \\void main() {
-    \\  gl_Position = vec4(aPos, 1);
+    \\  gl_Position = vec4(offset + aPos, 1);
     \\  color = aCol;
-    \\  uv = aUV;
     \\}
 ;
 const fragmentShaderSource =
     \\#version 460 core
-    \\#extension GL_ARB_bindless_texture : require
     \\
     \\out vec4 FragColor;
     \\
     \\in vec3 color;
-    \\in vec2 uv;
-    \\
-    \\layout (bindless_sampler) uniform sampler2D tex;
     \\
     \\void main() {
-    \\  FragColor = texture(tex, uv) * vec4(color, 1);
+    \\  FragColor = vec4(color, 1);
     \\}
 ;
 
@@ -70,6 +72,7 @@ pub fn main() !void {
         800,
         600,
         .{
+            .debug = IS_DEBUG,
             .visible = false,
             .resizable = false,
             .vsync = true,
@@ -91,7 +94,9 @@ pub fn main() !void {
     defer window.destroy();
     window.makeCurrentContext();
 
-    window.setKeyCallback(&keyCallback);
+    if (IS_DEBUG) {
+        window.setKeyCallback(&keyCallback);
+    }
 
     const glVersion = glad.init(&glfw.getProcAddress) catch |e| {
         return zig3d.println(
@@ -106,22 +111,33 @@ pub fn main() !void {
 
     // init()
 
+    glad.debugMessageCallback(debugCallback, null);
+
     var VAO = glad.VertexArray.gen();
     defer VAO.destroy();
     var VBO = glad.Buffer.gen();
     defer VBO.destroy();
+    var IBO = glad.Buffer.gen();
+    defer IBO.destroy();
     {
         VAO.bind();
+
         VBO.bind(.Array);
         try glad.Buffer.dataTarget(.Array, f32, vertices, .StaticDraw);
-        const stride = 8 * @sizeOf(f32);
-        VAO.vertexAttrib(0, 3, f32, false, stride, 0);
-        VAO.vertexAttrib(1, 3, f32, false, stride, 3 * @sizeOf(f32));
-        VAO.vertexAttrib(2, 2, f32, false, stride, 6 * @sizeOf(f32));
+        glad.VertexArray.vertexAttrib(0, 3, f32, false, 6 * @sizeOf(f32), 0);
+        glad.VertexArray.vertexAttrib(1, 3, f32, false, 6 * @sizeOf(f32), 3 * @sizeOf(f32));
+
+        IBO.bind(.Array);
+        try glad.Buffer.dataTarget(.Array, f32, offsets, .StaticDraw);
+        glad.VertexArray.vertexAttrib(2, 3, f32, false, 3 * @sizeOf(f32), 0);
+
+        glad.Buffer.unbindAny(.Array);
+
         VAO.enableAttrib(0);
         VAO.enableAttrib(1);
         VAO.enableAttrib(2);
-        glad.Buffer.unbindAny(.Array);
+        try glad.VertexArray.vertexAttribDivisor(2, 1);
+
         glad.VertexArray.unbindAny();
     }
 
@@ -150,8 +166,7 @@ pub fn main() !void {
                 },
             );
         };
-        _ = program
-            .attachShader(vertex)
+        _ = program.attachShader(vertex)
             .attachShader(fragment)
             .linkProgram(allocator) catch |e| {
             return zig3d.println(
@@ -163,49 +178,6 @@ pub fn main() !void {
             );
         };
     }
-
-    stb.setFlipVerticallyOnLoad(true);
-
-    var texture = glad.Texture.gen();
-    defer texture.destroy();
-    {
-        var image = stb.Image.loadZ("texture.png", &errStr) orelse {
-            return zig3d.println("Cannot load texture from file: {s}", .{errStr});
-        };
-        defer image.delete();
-
-        texture.bind(.Texture2D);
-
-        try glad.Texture.texParam(.Texture2D, .MinFilter, .Nearest);
-        try glad.Texture.texParam(.Texture2D, .MagFilter, .Nearest);
-
-        try glad.Texture.texParam(.Texture2D, .WrapS, .Repeat);
-        try glad.Texture.texParam(.Texture2D, .WrapT, .Repeat);
-
-        try glad.Texture.texParam(.Texture2D, .WrapS, .Repeat);
-        try glad.Texture.texParam(.Texture2D, .WrapT, .Repeat);
-
-        try glad.Texture.texImage(
-            2,
-            .Texture2D,
-            0,
-            .RGBA,
-            image.width,
-            image.height,
-            0,
-            u8,
-            image.pixels,
-        );
-
-        glad.Texture.generateMipmap(.Texture2D);
-        glad.Texture.unbindAny(.Texture2D);
-    }
-    const textureHandle = glad.TextureHandle.init(texture);
-    defer textureHandle.makeNonResident();
-    textureHandle.makeResident();
-
-    program.useProgram();
-    try program.setUniform("tex", textureHandle);
 
     glad.viewport(0, 0, 800, 600);
     glad.enable(.CullFace);
@@ -220,7 +192,7 @@ pub fn main() !void {
             break :dtBlk now - lt;
         };
 
-        if (dt <= 1e-8) {
+        if (dt < 0) {
             std.time.sleep(16_000);
             continue;
         }
@@ -248,14 +220,37 @@ pub fn main() !void {
         );
 
         // render()
+        program.useProgram();
         VAO.bind();
-        try glad.drawArrays(.TriangleStrip, 0, 5);
+        try glad.drawArraysInstanced(.TriangleStrip, 0, 5, 3);
         glad.VertexArray.unbindAny();
+        glad.ShaderProgram.unuseAny();
 
         window.swapBuffers();
     }
 
     // quit()
+}
+
+fn debugCallback(source: glad.DebugSource, kind: glad.DebugType, id: u32, severity: glad.DebugSeverity, message: []const u8, userData: ?*anyopaque) void {
+    _ = userData; // autofix
+    if (severity == .Notification) {
+        std.debug.print(
+            \\[DEBUG] ({d}) {s} from {s}
+            \\  {s}
+            \\
+        ,
+            .{ id, @tagName(kind), @tagName(source), message },
+        );
+    } else {
+        std.debug.print(
+            \\[ERROR {s}] ({d}) {d} from {d}
+            \\  {s}
+            \\
+        ,
+            .{ @tagName(severity), id, @tagName(kind), @tagName(source), message },
+        );
+    }
 }
 
 fn keyCallback(window: *glfw.Window, key: glfw.Key, action: glfw.Key.Action, mods: glfw.Key.Mods) anyerror!void {
