@@ -93,9 +93,9 @@ pub const Mesh = struct {
         buffers[1].bind(.ElementArray);
         try buffers[1].data(u32, self.indices, .StaticDraw);
 
-        vao.vertexAttrib(0, 3, f32, false, @sizeOf(Vertex), 0);
-        vao.vertexAttrib(1, 3, f32, false, @sizeOf(Vertex), @offsetOf(Vertex, "color"));
-        vao.vertexAttrib(2, 2, f32, false, @sizeOf(Vertex), @offsetOf(Vertex, "uv"));
+        glad.VertexArray.vertexAttrib(0, 3, f32, false, @sizeOf(Vertex), 0);
+        glad.VertexArray.vertexAttrib(1, 3, f32, false, @sizeOf(Vertex), @offsetOf(Vertex, "color"));
+        glad.VertexArray.vertexAttrib(2, 2, f32, false, @sizeOf(Vertex), @offsetOf(Vertex, "uv"));
         vao.enableAttrib(0);
         vao.enableAttrib(1);
         vao.enableAttrib(2);

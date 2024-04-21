@@ -1196,6 +1196,15 @@ pub const Buffer = struct {
         );
         try checkError();
     }
+    pub fn subdata(self: Buffer, offset: usize, comptime T: type, dat: []const T) Error!void {
+        c.glNamedBufferSubData(
+            @intCast(self.id),
+            @intCast(offset),
+            @intCast(dat.len * @sizeOf(T)),
+            @ptrCast(dat.ptr),
+        );
+        try checkError();
+    }
     /// sets data for non-named buffer object
     ///
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml
@@ -1205,6 +1214,15 @@ pub const Buffer = struct {
             @intCast(dat.len * @sizeOf(T)),
             @ptrCast(dat.ptr),
             dataAccedd2GL(access),
+        );
+        try checkError();
+    }
+    pub fn subdataTarget(target: BufferType, offset: usize, comptime T: type, dat: []const T) Error!void {
+        c.glBufferSubData(
+            bufferType2GL(target),
+            @intCast(offset),
+            @intCast(dat.len * @sizeOf(T)),
+            @ptrCast(dat.ptr),
         );
         try checkError();
     }

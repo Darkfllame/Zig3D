@@ -15,11 +15,6 @@ const vertices: []const f32 = &.{
     -0.5, 0.5,  0, 0, 1, 0,
     -0.5, -0.5, 0, 0, 0, 0,
 };
-const offsets: []const f32 = &.{
-    0.0,  0.0,  0.0,
-    0.5,  0.5,  0.5,
-    -0.5, -0.5, -0.5,
-};
 
 const vertexShaderSource =
     \\#version 460 core
@@ -52,6 +47,12 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
+
+    var offsets = [_]f32{
+        0.0,  0.0,  0.0,
+        0.5,  0.5,  0.0,
+        -0.5, -0.5, 0.0,
+    };
 
     var errStr: []const u8 = "";
     glfw.init(&errStr) catch |e| {
@@ -128,7 +129,7 @@ pub fn main() !void {
         glad.VertexArray.vertexAttrib(1, 3, f32, false, 6 * @sizeOf(f32), 3 * @sizeOf(f32));
 
         IBO.bind(.Array);
-        try glad.Buffer.dataTarget(.Array, f32, offsets, .StaticDraw);
+        try glad.Buffer.dataTarget(.Array, f32, &offsets, .DynamicDraw);
         glad.VertexArray.vertexAttrib(2, 3, f32, false, 3 * @sizeOf(f32), 0);
 
         glad.Buffer.unbindAny(.Array);
@@ -183,13 +184,13 @@ pub fn main() !void {
     glad.enable(.CullFace);
     glad.enable(.DepthTest);
     window.show();
-    var lt: f64 = 0;
+    var lt: f128 = 0;
     var delta: f64 = 0;
     while (!window.shouldClose()) {
+        const now = @as(f128, @floatFromInt(std.time.nanoTimestamp())) / 1_000_000_000.0;
         const dt: f64 = dtBlk: {
-            const now = @as(f64, @floatFromInt(std.time.nanoTimestamp())) / 1_000_000_000.0;
-            defer lt = now;
-            break :dtBlk now - lt;
+            defer lt = @floatCast(now);
+            break :dtBlk @floatCast(now - lt);
         };
 
         if (dt < 0) {
@@ -210,6 +211,18 @@ pub fn main() !void {
         };
 
         // update()
+
+        {
+            const rpm = 60;
+            const nowRot = rpm * now;
+            offsets[3] = @floatCast(@sin(zig3d.toRadians * nowRot));
+            offsets[4] = @floatCast(@cos(zig3d.toRadians * nowRot));
+            offsets[6] = @floatCast(@sin(zig3d.toRadians * (nowRot - 180)));
+            offsets[7] = @floatCast(@cos(zig3d.toRadians * (nowRot - 180)));
+            IBO.bind(.Array);
+            glad.Buffer.subdataTarget(.Array, 0, f32, &offsets) catch unreachable;
+            glad.Buffer.unbindAny(.Array);
+        }
 
         glad.clearRGBA(
             glad.FColor.Black,
