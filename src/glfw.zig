@@ -1,10 +1,13 @@
 const std = @import("std");
 const utils = @import("utils");
 pub const Key = @import("Key").Key;
-const c = @cImport({
-    @cInclude("GLFW/glfw3.h");
-    @cInclude("string.h");
-});
+const c = @import("glfw_externs.zig");
+
+pub fn strlen(s: [*c]const u8) usize {
+    const ss = s;
+    while ((s + 1).* != 0) s += 1;
+    return @intFromPtr(s - ss);
+}
 
 pub usingnamespace if (@import("build_options").exposeC) struct {
     pub const capi = c;
@@ -44,7 +47,7 @@ pub fn getError(description: ?*[]const u8) Error {
     var desc: []u8 = undefined;
     const err = errFromC(c.glfwGetError(@ptrCast(&desc.ptr)));
     if (err != Error.NoError) {
-        desc.len = c.strlen(desc.ptr);
+        desc.len = strlen(desc.ptr);
     } else {
         desc = "";
     }
@@ -275,12 +278,12 @@ pub fn setClipboardZ(str: [:0]const u8) void {
 /// Query the clipboard content.
 pub fn getClipboard() ?[]const u8 {
     const str = c.glfwGetClipboardString(null) orelse return null;
-    return str[0..c.strlen(str)];
+    return str[0..strlen(str)];
 }
 
 pub fn getKeyName(key: Key) []const u8 {
     const str = c.glfwGetKeyName(keyToGlfw(key), 0);
-    return str[0..c.strlen(str)];
+    return str[0..strlen(str)];
 }
 
 inline fn keyToGlfw(key: Key) c_int {
@@ -636,7 +639,7 @@ pub const Window = opaque {
 
             for (0..@intCast(pathCount)) |i| {
                 const str = paths[i];
-                const len: usize = @intCast(c.strlen(str));
+                const len: usize = @intCast(strlen(str));
                 pathsSlice[i] = str[0..len];
             }
 
