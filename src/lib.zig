@@ -9,10 +9,5 @@ pub const UtilityTypes = struct {
 pub usingnamespace @import("utils");
 
 comptime {
-    _ = glfw;
-    _ = glad;
-    _ = stb;
-    _ = freetype;
-    _ = zlm;
-    _ = @This();
+    @import("std").testing.refAllDeclsRecursive(@This());
 }

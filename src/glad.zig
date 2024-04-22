@@ -421,7 +421,7 @@ pub const DrawMode = enum {
     TrianglesAdjacency,
     Patches,
 };
-inline fn drawMod2GL(mode: DrawMode) c.GLenum {
+inline fn drawMode2GL(mode: DrawMode) c.GLenum {
     return switch (mode) {
         .Points => c.GL_POINTS,
         .LineStrip => c.GL_LINE_STRIP,
@@ -785,6 +785,38 @@ pub const Error = error{
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // main functions
 
+/// You can do try glad.checkError() to check for any
+/// OpenGL errors
+pub fn checkError() Error!void {
+    return switch (errFromC(c.glGetError())) {
+        Error.NoError => {},
+        else => |e| e,
+    };
+}
+
+/// clears the error message.
+pub fn clearError() void {
+    if (errMessage) |_| {
+        if (messageAllocator) |_| {
+            messageAllocator.?.free(errMessage.?);
+        }
+    }
+    messageAllocator = null;
+    errMessage = null;
+}
+
+/// returns the error message
+pub fn getErrorMessage() []const u8 {
+    return errMessage orelse "";
+}
+
+/// sets the error message
+pub fn setErrorMessage(allocator: Allocator, mess: []const u8) void {
+    clearError();
+    messageAllocator = allocator;
+    errMessage = mess;
+}
+
 /// if loader is null it will use the builtin glad loader
 /// otherwise it will use the loader.
 ///
@@ -861,112 +893,6 @@ pub fn polygonMode(mode: FaceMode) void {
     c.glPolygonMode(c.GL_FRONT_AND_BACK, faceMode2GL(mode));
 }
 
-pub fn drawElements(mode: DrawMode, count: usize, comptime T: type, indices: usize) Error!void {
-    c.glDrawElements(
-        drawMod2GL(mode),
-        @intCast(count),
-        type2GL(T),
-        @ptrFromInt(indices),
-    );
-    try checkError();
-}
-
-pub fn drawElementsInstanced(mode: DrawMode, count: usize, comptime T: type, indices: usize, instanceCount: u32) Error!void {
-    c.glDrawElementsInstanced(
-        drawMod2GL(mode),
-        @intCast(count),
-        type2GL(T),
-        @ptrFromInt(indices),
-        @intCast(instanceCount),
-    );
-    try checkError();
-}
-
-pub fn drawElementsIndirect(mode: DrawMode, comptime T: type, indirect: *const DrawElementsIndirectCommand) Error!void {
-    c.glDrawElementsIndirect(
-        drawMod2GL(mode),
-        type2GL(T),
-        @ptrCast(indirect),
-    );
-    try checkError();
-}
-
-pub fn drawArrays(mode: DrawMode, first: u32, count: u32) Error!void {
-    c.glDrawArrays(drawMod2GL(mode), @intCast(first), @intCast(count));
-    try checkError();
-}
-
-pub fn drawArraysInstanced(mode: DrawMode, first: u32, count: u32, instanceCount: u32) Error!void {
-    c.glDrawArraysInstanced(
-        drawMod2GL(mode),
-        @intCast(first),
-        @intCast(count),
-        @intCast(instanceCount),
-    );
-    try checkError();
-}
-
-pub fn drawArraysIndirect(mode: DrawMode, indirect: *const DrawArraysIndirectCommand) Error!void {
-    c.glDrawArraysIndirect(
-        drawMod2GL(mode),
-        @ptrCast(indirect),
-    );
-    try checkError();
-}
-
-pub fn multiDrawArraysIndirect(mode: DrawMode, indirect: []const DrawArraysIndirectCommand) Error!void {
-    c.glMultiDrawArraysIndirect(
-        drawMod2GL(mode),
-        @ptrCast(indirect),
-        @intCast(indirect.len),
-        0,
-    );
-    try checkError();
-}
-
-pub fn drawArraysInstancedBaseInstance(mode: DrawMode, first: u32, count: u32, instanceCount: u32, baseInstance: u32) Error!void {
-    c.glDrawArraysInstancedBaseInstance(
-        mode,
-        first,
-        count,
-        instanceCount,
-        baseInstance,
-    );
-    try checkError();
-}
-
-/// You can do try glad.checkError() to check for any
-/// OpenGL errors
-pub fn checkError() Error!void {
-    return switch (errFromC(c.glGetError())) {
-        Error.NoError => {},
-        else => |e| e,
-    };
-}
-
-/// clears the error message.
-pub fn clearError() void {
-    if (errMessage) |_| {
-        if (messageAllocator) |_| {
-            messageAllocator.?.free(errMessage.?);
-        }
-    }
-    messageAllocator = null;
-    errMessage = null;
-}
-
-/// returns the error message
-pub fn getErrorMessage() []const u8 {
-    return errMessage orelse "";
-}
-
-/// sets the error message
-pub fn setErrorMessage(allocator: Allocator, mess: []const u8) void {
-    clearError();
-    messageAllocator = allocator;
-    errMessage = mess;
-}
-
 /// specifies the affine transformation of x and y
 /// from normalized device coordinates to window coordinates.
 ///
@@ -1000,6 +926,201 @@ pub fn blendFunc(func: BlendFunc) void {
 
 pub fn cullFace(face: Face) void {
     c.glCullFace(face2GL(face));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// draw calls
+
+pub fn drawArrays(mode: DrawMode, first: u32, count: u32) Error!void {
+    c.glDrawArrays(drawMode2GL(mode), @intCast(first), @intCast(count));
+    try checkError();
+}
+
+pub fn multiDrawArrays(mode: DrawMode, firsts: []const u32, counts: []const u32) Error!void {
+    if (firsts.len != counts.len) return Error.InvalidValue;
+    c.glMultiDrawArrays(
+        drawMode2GL(mode),
+        @ptrCast(firsts),
+        @ptrCast(counts),
+        firsts.len,
+    );
+    try checkError();
+}
+
+pub fn drawArraysInstanced(mode: DrawMode, first: u32, count: u32, instanceCount: u32) Error!void {
+    c.glDrawArraysInstanced(
+        drawMode2GL(mode),
+        @intCast(first),
+        @intCast(count),
+        @intCast(instanceCount),
+    );
+    try checkError();
+}
+
+pub fn drawArraysIndirect(mode: DrawMode, indirect: ?*const DrawArraysIndirectCommand) Error!void {
+    c.glDrawArraysIndirect(
+        drawMode2GL(mode),
+        @ptrCast(indirect),
+    );
+    try checkError();
+}
+
+pub fn multiDrawArraysIndirect(mode: DrawMode, indirect: ?[]const DrawArraysIndirectCommand) Error!void {
+    c.glMultiDrawArraysIndirect(
+        drawMode2GL(mode),
+        if (indirect) @ptrCast(indirect.?) else null,
+        if (indirect) @intCast(indirect.?.len) else 0,
+        0,
+    );
+    try checkError();
+}
+
+pub fn drawArraysInstancedBaseInstance(mode: DrawMode, first: u32, count: u32, instanceCount: u32, baseInstance: u32) Error!void {
+    c.glDrawArraysInstancedBaseInstance(
+        drawMode2GL(mode),
+        @intCast(first),
+        @intCast(count),
+        @intCast(instanceCount),
+        @intCast(baseInstance),
+    );
+    try checkError();
+}
+
+pub fn drawElements(mode: DrawMode, count: u32, comptime T: type, indices: usize) Error!void {
+    c.glDrawElements(
+        drawMode2GL(mode),
+        @intCast(count),
+        type2GL(T),
+        @ptrFromInt(indices),
+    );
+    try checkError();
+}
+
+/// works like drawElements() but with indices as a slice. Specific to this API
+pub fn drawElementsSlice(mode: DrawMode, comptime T: type, indices: []const T) Error!void {
+    c.glDrawElements(
+        drawMode2GL(mode),
+        @intCast(indices.len),
+        type2GL(T),
+        @ptrCast(indices),
+    );
+    try checkError();
+}
+
+/// works like drawElements() but with indices as an array. Specific to this API
+pub fn drawElementsArray(mode: DrawMode, comptime T: type, comptime N: comptime_int, indices: *const [N]T) Error!void {
+    c.glDrawElements(
+        drawMode2GL(mode),
+        N,
+        type2GL(T),
+        @ptrCast(indices),
+    );
+    try checkError();
+}
+
+pub fn multiDrawElements(mode: DrawMode, counts: []const u32, comptime T: type, indices: ?[]const usize) Error!void {
+    if (indices and counts.len != indices.?.len) return Error.InvalidValue;
+    c.glMultiDrawElements(
+        drawMode2GL(mode),
+        @ptrCast(counts),
+        type2GL(T),
+        @ptrCast(indices),
+        @intCast(counts.len),
+    );
+    try checkError();
+}
+
+pub fn drawElementsInstanced(mode: DrawMode, count: usize, comptime T: type, indices: usize, instanceCount: u32) Error!void {
+    c.glDrawElementsInstanced(
+        drawMode2GL(mode),
+        @intCast(count),
+        type2GL(T),
+        @ptrFromInt(indices),
+        @intCast(instanceCount),
+    );
+    try checkError();
+}
+
+/// works like drawElementsInstanced() but with indices as a slice. Specific to this API
+pub fn drawElementsInstancedSlice(mode: DrawMode, comptime T: type, indices: []const T, instanceCount: u32) Error!void {
+    c.glDrawElementsInstanced(
+        drawMode2GL(mode),
+        @intCast(indices.len),
+        type2GL(T),
+        @ptrCast(indices),
+        @intCast(instanceCount),
+    );
+    try checkError();
+}
+
+/// works like drawElementsInstanced() but with indices as an array. Specific to this API
+pub fn drawElementsInstancedArray(mode: DrawMode, comptime T: type, comptime N: comptime_int, indices: *const [N]T, instanceCount: u32) Error!void {
+    c.glDrawElementsInstanced(
+        drawMode2GL(mode),
+        N,
+        type2GL(T),
+        @ptrCast(indices),
+        @intCast(instanceCount),
+    );
+    try checkError();
+}
+
+pub fn drawElementsIndirect(mode: DrawMode, comptime T: type, indirect: ?*const DrawElementsIndirectCommand) Error!void {
+    c.glDrawElementsIndirect(
+        drawMode2GL(mode),
+        type2GL(T),
+        @ptrCast(indirect),
+    );
+    try checkError();
+}
+
+pub fn multiDrawElementsIndirect(mode: DrawMode, comptime T: type, indirect: ?[]const DrawElementsIndirectCommand) Error!void {
+    c.glMultiDrawElementsIndirect(
+        drawMode2GL(mode),
+        type2GL(T),
+        @ptrCast(indirect),
+        if (indirect) |ind| @intCast(ind.len) else 0,
+        0,
+    );
+    try checkError();
+}
+
+pub fn drawElementsInstancedBaseInstance(mode: DrawMode, count: u32, comptime T: type, indices: usize, instanceCount: u32, baseInstance: 32) Error!void {
+    c.glDrawElementsInstancedBaseInstance(
+        drawMode2GL(mode),
+        @intCast(count),
+        type2GL(T),
+        @ptrFromInt(indices),
+        @intCast(instanceCount),
+        @intCast(baseInstance),
+    );
+    try checkError();
+}
+
+/// works like drawElementsInstancedBaseInstance() but with indices as an array. Specific to this API
+pub fn drawElementsInstancedBaseInstanceSlice(mode: DrawMode, comptime T: type, indices: []const T, instanceCount: u32, baseInstance: 32) Error!void {
+    c.glDrawElementsInstancedBaseInstance(
+        drawMode2GL(mode),
+        @intCast(indices.len),
+        type2GL(T),
+        @ptrCast(indices),
+        @intCast(instanceCount),
+        @intCast(baseInstance),
+    );
+    try checkError();
+}
+
+/// works like drawElementsInstancedBaseInstance() but with indices as an array. Specific to this API
+pub fn drawElementsInstancedBaseInstanceArray(mode: DrawMode, comptime T: type, comptime N: comptime_int, indices: *const [N]T, instanceCount: u32, baseInstance: 32) Error!void {
+    c.glDrawElementsInstancedBaseInstance(
+        drawMode2GL(mode),
+        N,
+        type2GL(T),
+        @ptrCast(indices),
+        @intCast(instanceCount),
+        @intCast(baseInstance),
+    );
+    try checkError();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
