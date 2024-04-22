@@ -6,9 +6,7 @@ const zlm = @import("zlm");
 const zlmd = zlm.SpecializeOn(f64);
 const zlmi = zlm.SpecializeOn(i32);
 const zlmu = zlm.SpecializeOn(u32);
-const c = @cImport({
-    @cInclude("GLAD/glad.h");
-});
+const c = @import("glad_externs.zig");
 
 pub usingnamespace if (@import("build_options").exposeC) struct {
     pub const capi = c;
