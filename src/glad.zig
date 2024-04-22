@@ -1084,8 +1084,12 @@ pub const VertexArray = struct {
         c.glDeleteVertexArrays(1, @ptrCast(&self.id));
         self.* = undefined;
     }
-    pub fn destroyArray(allocator: Allocator, arr: *[]VertexArray) void {
-        c.glDeleteVertexArrays(arr.len, @ptrCast(arr.ptr));
+    pub fn destroyArray(comptime N: comptime_int, arrays: *[N]VertexArray) void {
+        c.glDeleteVertexArrays(N, @ptrCast(arrays));
+        @memset(arrays, undefined);
+    }
+    pub fn destroySlice(allocator: Allocator, arr: *[]VertexArray) void {
+        c.glDeleteVertexArrays(@intCast(arr.len), @ptrCast(arr.ptr));
         allocator.free(arr.*);
         arr.* = undefined;
     }
@@ -1171,7 +1175,11 @@ pub const Buffer = struct {
         c.glDeleteBuffers(1, @ptrCast(&self.id));
         self.* = undefined;
     }
-    pub fn destroyArray(allocator: Allocator, arr: *[]Buffer) void {
+    pub fn destroyArray(comptime N: comptime_int, buffers: *[N]Buffer) void {
+        c.glDeleteBuffers(@intCast(N), @ptrCast(buffers.ptr));
+        @memset(buffers, undefined);
+    }
+    pub fn destroySlice(allocator: Allocator, arr: *[]Buffer) void {
         c.glDeleteBuffers(@intCast(arr.len), @ptrCast(arr.ptr));
         allocator.free(arr.*);
         arr.* = undefined;
@@ -1502,10 +1510,14 @@ pub const Texture = struct {
         c.glDeleteTextures(1, @ptrCast(&self.id));
         self.* = undefined;
     }
-    pub fn destroyArray(self: *[]Texture, allocator: Allocator) []Texture {
-        c.glDeleteTextures(@intCast(self.len), @ptrCast(self.ptr));
-        allocator.free(self.*);
-        self.* = undefined;
+    pub fn destroyArray(comptime N: comptime_int, textures: *[N]Texture) []Texture {
+        c.glDeleteTextures(N, @ptrCast(textures));
+        @memset(textures, undefined);
+    }
+    pub fn destroySlice(allocator: Allocator, textures: *[]Texture) []Texture {
+        c.glDeleteTextures(@intCast(textures.len), @ptrCast(textures.ptr));
+        allocator.free(textures.*);
+        textures.* = undefined;
     }
 
     pub fn bind(self: Texture, @"type": TextureType) void {

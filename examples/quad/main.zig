@@ -3,14 +3,11 @@ const zig3d = @import("zig3d");
 
 const glad = zig3d.glad;
 
-const Vertex = zig3d.UtilityTypes.Vertex;
-const Mesh = zig3d.UtilityTypes.Mesh;
-
-const triangleVertices: []const Vertex = &.{
-    Vertex.new(-0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0),
-    Vertex.new(0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0),
-    Vertex.new(0.5, 0.5, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0),
-    Vertex.new(-0.5, 0.5, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0),
+const triangleVertices: []const f32 = &.{
+    -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+    0.5,  -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+    0.5,  0.5,  0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+    -0.5, 0.5,  0.0, 1.0, 1.0, 1.0, 0.0, 1.0,
 };
 const triangleIndices: []const u32 = &.{
     0, 1, 2,
@@ -149,12 +146,30 @@ pub fn main() !void {
         };
     }
 
-    const mesh = Mesh{
-        .vertices = @constCast(triangleVertices),
-        .indices = @constCast(triangleIndices),
-    };
-    var glmesh = try mesh.generate();
-    defer glmesh.deinit();
+    var vao = glad.VertexArray.create();
+    defer vao.destroy();
+    var buffers = glad.Buffer.createBuffers(2);
+    defer glad.Buffer.destroyArray(2, &buffers);
+    {
+        vao.bind();
+
+        buffers[0].bind(.Array);
+        try buffers[0].data(f32, triangleVertices, .StaticDraw);
+
+        buffers[1].bind(.ElementArray);
+        try buffers[1].data(u32, triangleIndices, .StaticDraw);
+
+        glad.VertexArray.vertexAttrib(0, 3, f32, false, 8 * @sizeOf(f32), 0);
+        glad.VertexArray.vertexAttrib(1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
+        glad.VertexArray.vertexAttrib(2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
+        vao.enableAttrib(0);
+        vao.enableAttrib(1);
+        vao.enableAttrib(2);
+
+        glad.Buffer.unbindAny(.ElementArray);
+        glad.Buffer.unbindAny(.Array);
+        glad.VertexArray.unbindAny();
+    }
 
     glad.viewport(0, 0, 800, 600);
     window.show();
@@ -174,7 +189,7 @@ pub fn main() !void {
         );
 
         program.useProgram();
-        glmesh.vao.bind();
+        vao.bind();
         try glad.drawElements(.Triangles, triangleIndices.len, u32, 0);
         glad.VertexArray.unbindAny();
         glad.ShaderProgram.unuseAny();

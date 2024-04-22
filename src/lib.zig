@@ -5,7 +5,6 @@ pub const freetype = @import("freetype");
 pub const zlm = @import("zlm");
 pub const UtilityTypes = struct {
     pub usingnamespace @import("camera.zig");
-    pub usingnamespace @import("graphics.zig");
 };
 pub usingnamespace @import("utils");
 

@@ -188,7 +188,6 @@ pub fn build(b: *std.Build) void {
 
     makeDemo(b, libModule, buildAllDemos, "demo", "Run the simple demo app", optimize, target);
     makeDemo(b, libModule, buildAllDemos, "quad", "Run the demo quad app", optimize, target);
-    makeDemo(b, libModule, buildAllDemos, "batch", "Run the batch demo app", optimize, target);
     makeDemo(b, libModule, buildAllDemos, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
     makeDemo(b, libModule, buildAllDemos, "instancing", "Run the instancing demo app", optimize, target);
 }
