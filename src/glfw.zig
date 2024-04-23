@@ -236,24 +236,38 @@ fn windowHint(hint: WindowHint) void {
     wHintS(c.GLFW_X11_INSTANCE_NAME, hint.x11InstanceName.ptr);
 }
 
-pub const InputMode = enum {
-    StickyKeys,
-    StickyMouseButtons,
-    LockKeyMods,
-};
 pub const CursorInputMode = enum {
     Normal,
     Hidden,
     Disabled,
 };
+pub const InputMode = union(enum) {
+    StickyKeys: bool,
+    StickyMouseButtons: bool,
+    LockKeyMods: bool,
+    Cursor: CursorInputMode,
+};
+pub const InputModeTag = std.meta.Tag(InputMode);
 
-inline fn inputMode2Glfw(mode: InputMode) c_int {
+inline fn inputModeTag2Glfw(mode: InputModeTag) c_int {
     return switch (mode) {
         .StickyKeys => c.GLFW_STICKY_KEYS,
         .StickyMouseButtons => c.GLFW_STICKY_MOUSE_BUTTONS,
         .LockKeyMods => c.GLFW_LOCK_KEY_MODS,
+        .Cursor => c.GLFW_CURSOR,
     };
 }
+inline fn inputModeValue2Glfw(mode: InputMode) c_int {
+    return switch (mode) {
+        .StickyKeys, .StickyMouseButtons, .LockKeyMods => |v| boolToGlfw(v),
+        .Cursor => |v| switch (v) {
+            .Normal => c.GLFW_CURSOR_NORMAL,
+            .Hidden => c.GLFW_CURSOR_HIDDEN,
+            .Disabled => c.GLFW_CURSOR_DISABLED,
+        },
+    };
+}
+
 
 /// Set the clipboard content.
 ///
@@ -830,30 +844,24 @@ pub const Window = opaque {
             self.makeCurrentContext();
     }
 
-    pub fn setInputMode(self: *Window, mode: InputMode, value: bool) void {
+    pub fn setInputMode(self: *Window, mode: InputMode) void {
         const win = self.toIntern();
-        c.glfwSetInputMode(win.ptr, inputMode2Glfw(mode), @intFromBool(value));
+        c.glfwSetInputMode(win.ptr, inputModeTag2Glfw(std.meta.activeTag(mode)), inputModeValue2Glfw(mode));
     }
-    pub fn getInputMode(self: *Window, mode: InputMode) bool {
+    /// Will always return the active tag defined by `mode`
+    pub fn getInputMode(self: *Window, mode: InputModeTag) InputMode {
         const win = self.toIntern();
-        return c.glfwGetInputMode(win.ptr, inputMode2Glfw(mode)) == c.GLFW_TRUE;
-    }
-
-    pub fn setCursorInputMode(self: *Window, value: CursorInputMode) void {
-        const win = self.toIntern();
-        c.glfwSetInputMode(win.ptr, c.GLFW_CURSOR, switch (value) {
-            .Normal => c.GLFW_CURSOR_NORMAL,
-            .Hidden => c.GLFW_CURSOR_HIDDEN,
-            .Disabled => c.GLFW_CURSOR_DISABLED,
-        });
-    }
-    pub fn getCursorInputMode(self: *Window) CursorInputMode {
-        const win = self.toIntern();
-        return switch (c.glfwGetInputMode(win.ptr, c.GLFW_CURSOR)) {
-            c.GLFW_CURSOR_NORMAL => .Normal,
-            c.GLFW_CURSOR_HIDDEN => .Hidden,
-            c.GLFW_CURSOR_DISABLED => .Disabled,
-            else => unreachable,
+        const v = c.glfwGetInputMode(win.ptr, inputModeTag2Glfw(mode));
+        return switch (mode) {
+            .StickyKeys, .StickyMouseButtons, .LockKeyMods => |tag| @unionInit(InputMode, @tagName(tag), v == c.GLFW_TRUE),
+            .Cursor => .{
+                .Cursor = switch (v) {
+                    c.GLFW_CURSOR_NORMAL => .Normal,
+                    c.GLFW_CURSOR_HIDDEN => .Hidden,
+                    c.GLFW_CURSOR_DISABLED => .Disabled,
+                    else => unreachable,
+                },
+            },
         };
     }
 
