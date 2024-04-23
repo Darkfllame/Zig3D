@@ -628,7 +628,7 @@ pub const Window = opaque {
             };
         }
     }
-    fn dropCallback(window: ?*c.GLFWwindow, pathCount: c_int, paths: [*c]const [*c]const u8) callconv(.C) void {
+    fn dropCallback(window: ?*c.GLFWwindow, pathCount: c_int, paths: [*]const [*]const u8) callconv(.C) void {
         const win = windowFromGlfw(window.?).toIntern();
         if (win.dropCallback) |f| {
             const pathsSlice: [][]const u8 = win.allocator.alloc([]u8, @intCast(pathCount)) catch |e| {
