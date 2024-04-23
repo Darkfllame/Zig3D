@@ -4,9 +4,9 @@ pub const Key = @import("Key").Key;
 const c = @import("glfw_externs.zig");
 
 pub fn strlen(s: [*c]const u8) usize {
-    const ss = s;
-    while ((s + 1).* != 0) s += 1;
-    return @intFromPtr(s - ss);
+    var ss = s;
+    while (ss[1] != 0) ss += 1;
+    return @intFromPtr(ss - @intFromPtr(s));
 }
 
 pub usingnamespace if (@import("build_options").exposeC) struct {
@@ -185,7 +185,7 @@ pub const WindowHint = struct {
 };
 
 inline fn boolToGlfw(b: bool) c_int {
-    return if (b) c.GL_TRUE else c.GL_FALSE;
+    return if (b) c.GLFW_TRUE else c.GLFW_FALSE;
 }
 
 fn windowHint(hint: WindowHint) void {

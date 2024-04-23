@@ -746,7 +746,7 @@ pub const DrawElementsIndirectCommand = struct {
     count: u32,
     instanceCount: u32,
     firstIndex: u32,
-    baseVertex: i32,
+    baseVertex: u32,
     baseInstance: u32,
 };
 
@@ -877,8 +877,8 @@ pub fn clearColor(red: f32, green: f32, blue: f32, alpha: f32) void {
 pub fn clear(mask: ClearBits) void {
     c.glClear(
         @as(c_uint, if (mask.depth) c.GL_DEPTH_BUFFER_BIT else 0) |
-            @as(c_uint, if (mask.color) c.GL_COLOR_BUFFER_BIT else 0) |
-            @as(c_uint, if (mask.accum) c.GL_ACCUM_BUFFER_BIT else 0),
+        @as(c_uint, if (mask.color) c.GL_COLOR_BUFFER_BIT else 0) |
+        @as(c_uint, if (mask.accum) c.GL_ACCUM_BUFFER_BIT else 0),
     );
 }
 

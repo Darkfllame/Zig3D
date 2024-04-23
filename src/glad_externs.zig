@@ -6323,7 +6323,7 @@ pub inline fn glColor3bv(v: [*c]const GLbyte) void {
 }
 /// https://registry.khronos.org/OpenGL-Refpages/gl2.1/xhtml/glColor.xml
 pub inline fn glColor3d(red: GLdouble, green: GLdouble, blue: GLdouble) void {
-    return glad_glColor3d.?(red, green, arg_139);
+    return glad_glColor3d.?(red, green, blue);
 }
 /// https://registry.khronos.org/OpenGL-Refpages/gl2.1/xhtml/glColor.xml
 pub inline fn glColor3dv(v: [*c]const GLdouble) void {
@@ -6614,8 +6614,8 @@ pub inline fn glRasterPos4iv(v: [*c]const GLint) void {
     return glad_glRasterPos4iv.?(v);
 }
 /// https://registry.khronos.org/OpenGL-Refpages/gl2.1/xhtml/glRasterPos.xml
-pub inline fn glRasterPos4s(w: GLshort, y: GLshort, z: GLshort, w: GLshort) void {
-    return glad_glRasterPos4s.?(w, y, z, w);
+pub inline fn glRasterPos4s(x: GLshort, y: GLshort, z: GLshort, w: GLshort) void {
+    return glad_glRasterPos4s.?(x, y, z, w);
 }
 /// https://registry.khronos.org/OpenGL-Refpages/gl2.1/xhtml/glRasterPos.xml
 pub inline fn glRasterPos4sv(v: [*c]const GLshort) void {
