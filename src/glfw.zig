@@ -75,6 +75,37 @@ pub fn getProcAddress(procname: [*c]const u8) callconv(.C) ?*anyopaque {
     return @ptrCast(@constCast(c.glfwGetProcAddress(procname)));
 }
 
+fn allocFn(size: usize, user: ?*anyopaque) callconv(.C) ?*anyopaque {
+    const allocator: *const Allocator = @ptrCast(@alignCast(user));
+    const base: *anyopaque = @ptrCast(@alignCast(allocator.alloc(u8, 8 + size) catch return null));
+    const usizePtr: *usize = @ptrCast(@alignCast(base));
+    usizePtr.* = size;
+    return @ptrFromInt(@intFromPtr(base) + 8);
+}
+fn reallocFn(block: ?*anyopaque, nsize: usize, user: ?*anyopaque) callconv(.C) ?*anyopaque {
+    const allocator: *const Allocator = @ptrCast(@alignCast(user));
+    const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - 8);
+    const size = @as(*usize, @ptrCast(@alignCast(manyPtr))).*;
+    const op: *anyopaque = @ptrCast(@alignCast(allocator.realloc(manyPtr[0 .. size + 8], if (nsize == 0) 0 else 8 + nsize) catch return null));
+    @as(*usize, @ptrCast(@alignCast(op))).* = nsize;
+    return @ptrFromInt(@intFromPtr(op) + 8);
+}
+fn deallocFn(block: ?*anyopaque, user: ?*anyopaque) callconv(.C) void {
+    const allocator: *const Allocator = @ptrCast(@alignCast(user));
+    const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - 8);
+    const size = @as(*usize, @ptrCast(@alignCast(manyPtr))).*;
+    allocator.free(manyPtr[0 .. size + 8]);
+}
+
+pub fn initAllocator(allocator: *const Allocator) void {
+    c.glfwInitAllocator(&.{
+        .allocate = &allocFn,
+        .reallocate = &reallocFn,
+        .deallocate = &deallocFn,
+        .user = @constCast(@ptrCast(@alignCast(allocator))),
+    });
+}
+
 pub fn init(errStr: ?*[]const u8) Error!void {
     const status = c.glfwInit();
     if (status != c.GLFW_TRUE) {
@@ -267,7 +298,6 @@ inline fn inputModeValue2Glfw(mode: InputMode) c_int {
         },
     };
 }
-
 
 /// Set the clipboard content.
 ///

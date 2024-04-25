@@ -1,10 +1,13 @@
 const std = @import("std");
 const zig3d = @import("zig3d");
 
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const allocator = gpa.allocator();
+
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+
+    zig3d.glfw.initAllocator(&allocator);
 
     var errStr: []const u8 = "";
     zig3d.glfw.init(&errStr) catch |e| {
