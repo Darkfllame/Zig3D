@@ -707,7 +707,11 @@ pub const Window = opaque {
     }
 
     pub fn create(title: []const u8, width: u32, height: u32, hint: WindowHint, errStr: ?*[]const u8) Error!*Window {
-        const allocator = @as(*Allocator, @ptrCast(@alignCast(_glfw.allocator.user))).*;
+        const glfwAlloc = _glfw.allocator.user;
+        const allocator = if (glfwAlloc) |alloc|
+            @as(*Allocator, @ptrCast(@alignCast(alloc))).*
+        else
+            std.heap.c_allocator;
         const title_copy = utils.copy(
             u8,
             title,
