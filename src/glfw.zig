@@ -3,6 +3,11 @@ const utils = @import("utils");
 pub const Key = @import("Key").Key;
 const c = @import("glfw_externs.zig");
 
+extern var _glfw: extern struct {
+    initialized: c_int,
+    allocator: c.GLFWallocator,
+};
+
 pub fn strlen(s: [*c]const u8) usize {
     var ss = s;
     while (ss[1] != 0) ss += 1;
@@ -701,7 +706,8 @@ pub const Window = opaque {
         @panic("Cannot find window");
     }
 
-    pub fn create(allocator: Allocator, title: []const u8, width: u32, height: u32, hint: WindowHint, errStr: ?*[]const u8) Error!*Window {
+    pub fn create(title: []const u8, width: u32, height: u32, hint: WindowHint, errStr: ?*[]const u8) Error!*Window {
+        const allocator = @as(*Allocator, @ptrCast(@alignCast(_glfw.allocator.user))).*;
         const title_copy = utils.copy(
             u8,
             title,

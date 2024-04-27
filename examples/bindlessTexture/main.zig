@@ -65,7 +65,6 @@ pub fn main() !void {
     try zig3d.println("Using GLFW version: {d}.{d}.{d}", zig3d.glfw.getVersion());
 
     var window = zig3d.glfw.Window.create(
-        allocator,
         "Hello, Window!",
         800,
         600,
