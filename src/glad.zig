@@ -877,8 +877,8 @@ pub fn clearColor(red: f32, green: f32, blue: f32, alpha: f32) void {
 pub fn clear(mask: ClearBits) void {
     c.glClear(
         @as(c_uint, if (mask.depth) c.GL_DEPTH_BUFFER_BIT else 0) |
-        @as(c_uint, if (mask.color) c.GL_COLOR_BUFFER_BIT else 0) |
-        @as(c_uint, if (mask.accum) c.GL_ACCUM_BUFFER_BIT else 0),
+            @as(c_uint, if (mask.color) c.GL_COLOR_BUFFER_BIT else 0) |
+            @as(c_uint, if (mask.accum) c.GL_ACCUM_BUFFER_BIT else 0),
     );
 }
 
@@ -1565,11 +1565,11 @@ pub const ShaderProgram = struct {
 
         switch (tinfo) {
             inline .Struct, .Int, .Float => try setUniformLoc(self, location, [1]T{value}),
-            inline .Array => |d| @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), d.len, @ptrCast(@alignCast(&value))),
+            inline .Array => |d| @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), d.len, false, @ptrCast(@alignCast(&value))),
             inline .Pointer => |d| {
                 switch (d.size) {
                     .One => try setUniformLoc(self, location.?, value.*),
-                    .Slice => @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), @intCast(value.len), @ptrCast(@alignCast(value))),
+                    .Slice => @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), @intCast(value.len), false, @ptrCast(@alignCast(value))),
                     else => @compileError("Pointers passed to ShaderProgram.setUniformLoc() must be pointer-to-one or slice, got " ++ @tagName(d.size)),
                 }
             },
