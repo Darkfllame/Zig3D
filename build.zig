@@ -186,6 +186,8 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    libModule.addImport("zig3d", libModule);
+
     makeDemo(b, libModule, buildAllDemos, "demo", "Run the simple demo app", optimize, target);
     makeDemo(b, libModule, buildAllDemos, "quad", "Run the demo quad app", optimize, target);
     makeDemo(b, libModule, buildAllDemos, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
