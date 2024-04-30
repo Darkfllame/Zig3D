@@ -49,6 +49,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
     });
+    KeyModule.linkLibrary(glfw.artifact("glfw"));
 
     const utilsModule = b.createModule(.{
         .root_source_file = b.path("src/utils.zig"),

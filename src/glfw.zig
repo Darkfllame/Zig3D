@@ -222,26 +222,20 @@ pub const WindowHint = struct {
     x11InstanceName: [:0]const u8 = "",
 };
 
-inline fn boolToGlfw(b: bool) c_int {
-    return if (b) c.GLFW_TRUE else c.GLFW_FALSE;
-}
-
-fn windowHint(hint: WindowHint) void {
-    // i just put @bitCast() everywhere so if the c_int size is not the same as u32
-    // you're quite f'd up
+inline fn windowHint(hint: WindowHint) void {
     const wHint = c.glfwWindowHint;
     const wHintS = c.glfwWindowHintString;
-    wHint(c.GLFW_RESIZABLE, boolToGlfw(hint.resizable));
-    wHint(c.GLFW_VISIBLE, boolToGlfw(hint.visible));
-    wHint(c.GLFW_DECORATED, boolToGlfw(hint.decorated));
-    wHint(c.GLFW_FOCUSED, boolToGlfw(hint.focused));
-    wHint(c.GLFW_AUTO_ICONIFY, boolToGlfw(hint.autoIconify));
-    wHint(c.GLFW_FLOATING, boolToGlfw(hint.floating));
-    wHint(c.GLFW_MAXIMIZED, boolToGlfw(hint.maximized));
-    wHint(c.GLFW_CENTER_CURSOR, boolToGlfw(hint.centerCursor));
-    wHint(c.GLFW_TRANSPARENT_FRAMEBUFFER, boolToGlfw(hint.transparentFramebuffer));
-    wHint(c.GLFW_FOCUS_ON_SHOW, boolToGlfw(hint.focusOnShow));
-    wHint(c.GLFW_SCALE_TO_MONITOR, boolToGlfw(hint.scaleToMonitor));
+    wHint(c.GLFW_RESIZABLE, @intFromBool(hint.resizable));
+    wHint(c.GLFW_VISIBLE, @intFromBool(hint.visible));
+    wHint(c.GLFW_DECORATED, @intFromBool(hint.decorated));
+    wHint(c.GLFW_FOCUSED, @intFromBool(hint.focused));
+    wHint(c.GLFW_AUTO_ICONIFY, @intFromBool(hint.autoIconify));
+    wHint(c.GLFW_FLOATING, @intFromBool(hint.floating));
+    wHint(c.GLFW_MAXIMIZED, @intFromBool(hint.maximized));
+    wHint(c.GLFW_CENTER_CURSOR, @intFromBool(hint.centerCursor));
+    wHint(c.GLFW_TRANSPARENT_FRAMEBUFFER, @intFromBool(hint.transparentFramebuffer));
+    wHint(c.GLFW_FOCUS_ON_SHOW, @intFromBool(hint.focusOnShow));
+    wHint(c.GLFW_SCALE_TO_MONITOR, @intFromBool(hint.scaleToMonitor));
     wHint(c.GLFW_RED_BITS, @bitCast(hint.redBits));
     wHint(c.GLFW_GREEN_BITS, @bitCast(hint.greenBits));
     wHint(c.GLFW_BLUE_BITS, @bitCast(hint.blueBits));
@@ -255,54 +249,47 @@ fn windowHint(hint: WindowHint) void {
     wHint(c.GLFW_AUX_BUFFERS, @bitCast(hint.auxBuffers));
     wHint(c.GLFW_SAMPLES, @bitCast(hint.samples));
     wHint(c.GLFW_REFRESH_RATE, @bitCast(hint.refreshRate));
-    wHint(c.GLFW_STEREO, boolToGlfw(hint.stereo));
-    wHint(c.GLFW_SRGB_CAPABLE, boolToGlfw(hint.srgbCapable));
-    wHint(c.GLFW_DOUBLEBUFFER, boolToGlfw(hint.doubleBuffer));
-    wHint(c.GLFW_CLIENT_API, @intCast(@intFromEnum(hint.clientApi)));
-    wHint(c.GLFW_CONTEXT_CREATION_API, @intCast(@intFromEnum(hint.creationApi)));
+    wHint(c.GLFW_STEREO, @intFromBool(hint.stereo));
+    wHint(c.GLFW_SRGB_CAPABLE, @intFromBool(hint.srgbCapable));
+    wHint(c.GLFW_DOUBLEBUFFER, @intFromBool(hint.doubleBuffer));
+    wHint(c.GLFW_CLIENT_API, @bitCast(@intFromEnum(hint.clientApi)));
+    wHint(c.GLFW_CONTEXT_CREATION_API, @bitCast(@intFromEnum(hint.creationApi)));
     wHint(c.GLFW_CONTEXT_VERSION_MAJOR, @intCast(hint.version.major));
     wHint(c.GLFW_CONTEXT_VERSION_MINOR, @intCast(hint.version.minor));
-    wHint(c.GLFW_CONTEXT_ROBUSTNESS, @intCast(@intFromEnum(hint.robustness)));
-    wHint(c.GLFW_CONTEXT_RELEASE_BEHAVIOR, @intCast(@intFromEnum(hint.releaseBehaviour)));
-    wHint(c.GLFW_OPENGL_FORWARD_COMPAT, boolToGlfw(hint.forwardCompat));
-    wHint(c.GLFW_OPENGL_DEBUG_CONTEXT, boolToGlfw(hint.debug));
-    wHint(c.GLFW_OPENGL_PROFILE, @intCast(@intFromEnum(hint.openglProfile)));
-    wHint(c.GLFW_COCOA_RETINA_FRAMEBUFFER, boolToGlfw(hint.cocoaRetinaFramebuffer));
+    wHint(c.GLFW_CONTEXT_ROBUSTNESS, @bitCast(@intFromEnum(hint.robustness)));
+    wHint(c.GLFW_CONTEXT_RELEASE_BEHAVIOR, @bitCast(@intFromEnum(hint.releaseBehaviour)));
+    wHint(c.GLFW_OPENGL_FORWARD_COMPAT, @intFromBool(hint.forwardCompat));
+    wHint(c.GLFW_OPENGL_DEBUG_CONTEXT, @intFromBool(hint.debug));
+    wHint(c.GLFW_OPENGL_PROFILE, @bitCast(@intFromEnum(hint.openglProfile)));
+    wHint(c.GLFW_COCOA_RETINA_FRAMEBUFFER, @intFromBool(hint.cocoaRetinaFramebuffer));
     wHintS(c.GLFW_COCOA_FRAME_NAME, hint.cocoaFrameName.ptr);
-    wHint(c.GLFW_COCOA_GRAPHICS_SWITCHING, boolToGlfw(hint.cocoaGraphicsSwitching));
+    wHint(c.GLFW_COCOA_GRAPHICS_SWITCHING, @intFromBool(hint.cocoaGraphicsSwitching));
     wHintS(c.GLFW_X11_CLASS_NAME, hint.x11ClassName.ptr);
     wHintS(c.GLFW_X11_INSTANCE_NAME, hint.x11InstanceName.ptr);
 }
 
-pub const CursorInputMode = enum {
-    Normal,
-    Hidden,
-    Disabled,
+pub const CursorInputMode = enum(u32) {
+    Normal = @intCast(c.GLFW_CURSOR_NORMAL),
+    Hidden = @intCast(c.GLFW_CURSOR_HIDDEN),
+    Disabled = @intCast(c.GLFW_CURSOR_DISABLED),
 };
-pub const InputMode = union(enum) {
+pub const InputModeTag = enum(u32) {
+    StickyKeys = @intCast(c.GLFW_STICKY_KEYS),
+    StickyMouseButtons = @intCast(c.GLFW_STICKY_MOUSE_BUTTONS),
+    LockKeyMods = @intCast(c.GLFW_LOCK_KEY_MODS),
+    Cursor = @intCast(c.GLFW_CURSOR),
+};
+pub const InputMode = union(InputModeTag) {
     StickyKeys: bool,
     StickyMouseButtons: bool,
     LockKeyMods: bool,
     Cursor: CursorInputMode,
 };
-pub const InputModeTag = std.meta.Tag(InputMode);
 
-inline fn inputModeTag2Glfw(mode: InputModeTag) c_int {
-    return switch (mode) {
-        .StickyKeys => c.GLFW_STICKY_KEYS,
-        .StickyMouseButtons => c.GLFW_STICKY_MOUSE_BUTTONS,
-        .LockKeyMods => c.GLFW_LOCK_KEY_MODS,
-        .Cursor => c.GLFW_CURSOR,
-    };
-}
 inline fn inputModeValue2Glfw(mode: InputMode) c_int {
     return switch (mode) {
-        .StickyKeys, .StickyMouseButtons, .LockKeyMods => |v| boolToGlfw(v),
-        .Cursor => |v| switch (v) {
-            .Normal => c.GLFW_CURSOR_NORMAL,
-            .Hidden => c.GLFW_CURSOR_HIDDEN,
-            .Disabled => c.GLFW_CURSOR_DISABLED,
-        },
+        .StickyKeys, .StickyMouseButtons, .LockKeyMods => |v| @intFromBool(v),
+        .Cursor => |v| @bitCast(@intFromEnum(v)),
     };
 }
 
@@ -333,135 +320,10 @@ pub fn getClipboard() ?[]const u8 {
 }
 
 pub fn getKeyName(key: Key) []const u8 {
-    const str = c.glfwGetKeyName(keyToGlfw(key), 0);
+    const str = c.glfwGetKeyName(@bitCast(@intFromEnum(key)), 0);
     return str[0..strlen(str)];
 }
 
-inline fn keyToGlfw(key: Key) c_int {
-    return switch (key) {
-        .Unknown => c.GLFW_KEY_UNKNOWN,
-        .Space => c.GLFW_KEY_SPACE,
-        .Apostrophe => c.GLFW_KEY_APOSTROPHE,
-        .Comma => c.GLFW_KEY_COMMA,
-        .Minus => c.GLFW_KEY_MINUS,
-        .Period => c.GLFW_KEY_PERIOD,
-        .Slash => c.GLFW_KEY_SLASH,
-        .@"0" => c.GLFW_KEY_0,
-        .@"1" => c.GLFW_KEY_1,
-        .@"2" => c.GLFW_KEY_2,
-        .@"3" => c.GLFW_KEY_3,
-        .@"4" => c.GLFW_KEY_4,
-        .@"5" => c.GLFW_KEY_5,
-        .@"6" => c.GLFW_KEY_6,
-        .@"7" => c.GLFW_KEY_7,
-        .@"8" => c.GLFW_KEY_8,
-        .@"9" => c.GLFW_KEY_9,
-        .Semicolon => c.GLFW_KEY_SEMICOLON,
-        .Equal => c.GLFW_KEY_EQUAL,
-        .A => c.GLFW_KEY_A,
-        .B => c.GLFW_KEY_B,
-        .C => c.GLFW_KEY_C,
-        .D => c.GLFW_KEY_D,
-        .E => c.GLFW_KEY_E,
-        .F => c.GLFW_KEY_F,
-        .G => c.GLFW_KEY_G,
-        .H => c.GLFW_KEY_H,
-        .I => c.GLFW_KEY_I,
-        .J => c.GLFW_KEY_J,
-        .K => c.GLFW_KEY_K,
-        .L => c.GLFW_KEY_L,
-        .M => c.GLFW_KEY_M,
-        .N => c.GLFW_KEY_N,
-        .O => c.GLFW_KEY_O,
-        .P => c.GLFW_KEY_P,
-        .Q => c.GLFW_KEY_Q,
-        .R => c.GLFW_KEY_R,
-        .S => c.GLFW_KEY_S,
-        .T => c.GLFW_KEY_T,
-        .U => c.GLFW_KEY_U,
-        .V => c.GLFW_KEY_V,
-        .W => c.GLFW_KEY_W,
-        .X => c.GLFW_KEY_X,
-        .Y => c.GLFW_KEY_Y,
-        .Z => c.GLFW_KEY_Z,
-        .LeftBracket => c.GLFW_KEY_LEFT_BRACKET,
-        .Backslash => c.GLFW_KEY_BACKSLASH,
-        .RightBracket => c.GLFW_KEY_RIGHT_BRACKET,
-        .GraveAccent => c.GLFW_KEY_GRAVE_ACCENT,
-        .World1 => c.GLFW_KEY_WORLD_1,
-        .World2 => c.GLFW_KEY_WORLD_2,
-        .Escape => c.GLFW_KEY_ESCAPE,
-        .Enter => c.GLFW_KEY_ENTER,
-        .Tab => c.GLFW_KEY_TAB,
-        .Backspace => c.GLFW_KEY_BACKSPACE,
-        .Insert => c.GLFW_KEY_INSERT,
-        .Delete => c.GLFW_KEY_DELETE,
-        .Right => c.GLFW_KEY_RIGHT,
-        .Left => c.GLFW_KEY_LEFT,
-        .Down => c.GLFW_KEY_DOWN,
-        .Up => c.GLFW_KEY_UP,
-        .PageUp => c.GLFW_KEY_PAGE_UP,
-        .PageDown => c.GLFW_KEY_PAGE_DOWN,
-        .Home => c.GLFW_KEY_HOME,
-        .End => c.GLFW_KEY_END,
-        .CapsLock => c.GLFW_KEY_CAPS_LOCK,
-        .ScrollLock => c.GLFW_KEY_SCROLL_LOCK,
-        .NumLock => c.GLFW_KEY_NUM_LOCK,
-        .PrintScreen => c.GLFW_KEY_PRINT_SCREEN,
-        .Pause => c.GLFW_KEY_PAUSE,
-        .F1 => c.GLFW_KEY_F1,
-        .F2 => c.GLFW_KEY_F2,
-        .F3 => c.GLFW_KEY_F3,
-        .F4 => c.GLFW_KEY_F4,
-        .F5 => c.GLFW_KEY_F5,
-        .F6 => c.GLFW_KEY_F6,
-        .F7 => c.GLFW_KEY_F7,
-        .F8 => c.GLFW_KEY_F8,
-        .F9 => c.GLFW_KEY_F9,
-        .F10 => c.GLFW_KEY_F10,
-        .F11 => c.GLFW_KEY_F11,
-        .F12 => c.GLFW_KEY_F12,
-        .F13 => c.GLFW_KEY_F13,
-        .F14 => c.GLFW_KEY_F14,
-        .F15 => c.GLFW_KEY_F15,
-        .F16 => c.GLFW_KEY_F16,
-        .F17 => c.GLFW_KEY_F17,
-        .F18 => c.GLFW_KEY_F18,
-        .F19 => c.GLFW_KEY_F19,
-        .F20 => c.GLFW_KEY_F20,
-        .F21 => c.GLFW_KEY_F21,
-        .F22 => c.GLFW_KEY_F22,
-        .F23 => c.GLFW_KEY_F23,
-        .F24 => c.GLFW_KEY_F24,
-        .F25 => c.GLFW_KEY_F25,
-        .Kp0 => c.GLFW_KEY_KP_0,
-        .Kp1 => c.GLFW_KEY_KP_1,
-        .Kp2 => c.GLFW_KEY_KP_2,
-        .Kp3 => c.GLFW_KEY_KP_3,
-        .Kp4 => c.GLFW_KEY_KP_4,
-        .Kp5 => c.GLFW_KEY_KP_5,
-        .Kp6 => c.GLFW_KEY_KP_6,
-        .Kp7 => c.GLFW_KEY_KP_7,
-        .Kp8 => c.GLFW_KEY_KP_8,
-        .Kp9 => c.GLFW_KEY_KP_9,
-        .KpDecimal => c.GLFW_KEY_KP_DECIMAL,
-        .KpDivide => c.GLFW_KEY_KP_DIVIDE,
-        .KpMultiply => c.GLFW_KEY_KP_MULTIPLY,
-        .KpSubtract => c.GLFW_KEY_KP_SUBTRACT,
-        .KpAdd => c.GLFW_KEY_KP_ADD,
-        .KpEnter => c.GLFW_KEY_KP_ENTER,
-        .KpEqual => c.GLFW_KEY_KP_EQUAL,
-        .LeftShift => c.GLFW_KEY_LEFT_SHIFT,
-        .LeftControl => c.GLFW_KEY_LEFT_CONTROL,
-        .LeftAlt => c.GLFW_KEY_LEFT_ALT,
-        .LeftSuper => c.GLFW_KEY_LEFT_SUPER,
-        .RightShift => c.GLFW_KEY_RIGHT_SHIFT,
-        .RightControl => c.GLFW_KEY_RIGHT_CONTROL,
-        .RightAlt => c.GLFW_KEY_RIGHT_ALT,
-        .RightSuper => c.GLFW_KEY_RIGHT_SUPER,
-        .Menu => c.GLFW_KEY_MENU,
-    };
-}
 inline fn keyFromGlfw(key: c_int) Key {
     return switch (key) {
         c.GLFW_KEY_SPACE => .Space,
@@ -600,7 +462,7 @@ pub const Window = opaque {
     var current: ?*Window = null;
     var windows: ?std.ArrayList(WindowInternal) = null;
 
-    fn toIntern(self: *Window) *WindowInternal {
+    inline fn toIntern(self: *Window) *WindowInternal {
         return @ptrCast(@alignCast(self));
     }
 
@@ -626,7 +488,7 @@ pub const Window = opaque {
             f(
                 win.toExtern(),
                 @bitCast(button),
-                actionFromGlfw(action),
+                @enumFromInt(@as(u32, @bitCast(action))),
                 kMods,
             ) catch |e| {
                 pollErr = e;
@@ -647,8 +509,8 @@ pub const Window = opaque {
             };
             f(
                 win.toExtern(),
-                keyFromGlfw(key),
-                actionFromGlfw(action),
+                @enumFromInt(@as(u32, @bitCast(key))),
+                @enumFromInt(@as(u32, @bitCast(action))),
                 kMods,
             ) catch |e| {
                 pollErr = e;
@@ -709,6 +571,7 @@ pub const Window = opaque {
     }
 
     pub fn create(title: []const u8, width: u32, height: u32, hint: WindowHint, errStr: ?*[]const u8) Error!*Window {
+        // TODO: use glfw window's user pointer to store additional datas
         const glfwAlloc = _glfw.allocator.user;
         const allocator = if (glfwAlloc) |alloc|
             @as(*Allocator, @ptrCast(@alignCast(alloc))).*
@@ -763,6 +626,13 @@ pub const Window = opaque {
         if (wArr.items.len <= 1) {
             wArr.deinit();
             windows = null;
+        } else {
+            for (windows.?.items, 0..) |*w, i| {
+                if (w == @as(*WindowInternal, @ptrCast(@alignCast(self)))) {
+                    _ = windows.?.swapRemove(i);
+                    break;
+                }
+            }
         }
     }
 
@@ -837,8 +707,6 @@ pub const Window = opaque {
     }
 
     pub fn getTitle(self: *Window) []const u8 {
-        const win = self.toIntern();
-        _ = win; // autofix
         return self.toIntern().title;
     }
     pub fn setTitle(self: *Window, title: []const u8) Error!void {
@@ -873,8 +741,13 @@ pub const Window = opaque {
         win.getSize(&width, &height);
         const ptr = c.glfwCreateWindow(@intCast(width), @intCast(height), win.title.ptr, null, null) orelse
             return getError(errStr);
-        _ = c.glfwSetCursorPosCallback(ptr, mouseCallback);
-        _ = c.glfwSetKeyCallback(ptr, keyCallback);
+        _ = c.glfwSetCursorPosCallback(ptr, &mouseCallback);
+        _ = c.glfwSetMouseButtonCallback(ptr, &buttonCallback);
+        _ = c.glfwSetKeyCallback(ptr, &keyCallback);
+        _ = c.glfwSetCharCallback(ptr, &charCallback);
+        _ = c.glfwSetCursorEnterCallback(ptr, &enterCallback);
+        _ = c.glfwSetScrollCallback(ptr, &scrollCallback);
+        _ = c.glfwSetDropCallback(ptr, &dropCallback);
         var x: u32 = 0;
         var y: u32 = 0;
         self.getPosition(&x, &y);
@@ -888,21 +761,16 @@ pub const Window = opaque {
 
     pub fn setInputMode(self: *Window, mode: InputMode) void {
         const win = self.toIntern();
-        c.glfwSetInputMode(win.ptr, inputModeTag2Glfw(std.meta.activeTag(mode)), inputModeValue2Glfw(mode));
+        c.glfwSetInputMode(win.ptr, @bitCast(@intFromEnum(std.meta.activeTag(mode))), inputModeValue2Glfw(mode));
     }
     /// Will always return the active tag defined by `mode`
     pub fn getInputMode(self: *Window, mode: InputModeTag) InputMode {
         const win = self.toIntern();
-        const v = c.glfwGetInputMode(win.ptr, inputModeTag2Glfw(mode));
+        const v = c.glfwGetInputMode(win.ptr, @bitCast(@intFromEnum(mode)));
         return switch (mode) {
             .StickyKeys, .StickyMouseButtons, .LockKeyMods => |tag| @unionInit(InputMode, @tagName(tag), v == c.GLFW_TRUE),
             .Cursor => .{
-                .Cursor = switch (v) {
-                    c.GLFW_CURSOR_NORMAL => .Normal,
-                    c.GLFW_CURSOR_HIDDEN => .Hidden,
-                    c.GLFW_CURSOR_DISABLED => .Disabled,
-                    else => unreachable,
-                },
+                .Cursor = @enumFromInt(v),
             },
         };
     }
@@ -910,13 +778,8 @@ pub const Window = opaque {
     pub fn setCursor(self: *Window, cursor: Cursor) void {
         c.glfwSetCursor(self.toIntern().ptr, cursor.toIntern().ptr);
     }
-    pub fn setIcon(self: *Window, icon: Image) void {
-        const img = c.GLFWimage{
-            .width = @intCast(icon.width),
-            .height = @intCast(icon.height),
-            .pixels = @ptrCast(icon.pixels.ptr),
-        };
-        c.glfwSetWindowIcon(self.toIntern().ptr, 1, @ptrCast(&img));
+    pub inline fn setIcon(self: *Window, icon: Image) void {
+        self.setIcons(&icon);
     }
     pub fn setIcons(self: *Window, icons: []Image) Allocator.Error!void {
         const allocator = self.toIntern().allocator;
@@ -939,10 +802,10 @@ pub const Window = opaque {
         c.glfwGetCursorPos(self.toIntern().ptr, @ptrCast(x), @ptrCast(y));
     }
     pub fn getMouseButton(self: *Window, button: u32) Key.Action {
-        return actionFromGlfw(c.glfwGetMouseButton(self.toIntern().ptr, @intCast(button)));
+        return @enumFromInt(@as(u32, @bitCast(c.glfwGetMouseButton(self.toIntern().ptr, @intCast(button)))));
     }
     pub fn getKey(self: *Window, key: Key) Key.Action {
-        return actionFromGlfw(c.glfwGetKey(self.toIntern().ptr, keyToGlfw(key)));
+        return @enumFromInt(@as(u32, @bitCast(c.glfwGetKey(self.toIntern().ptr, @bitCast(@intFromEnum(key))))));
     }
 
     // callbacks
@@ -993,8 +856,6 @@ pub const Window = opaque {
         self.toIntern().dropCallback = cb;
     }
     pub fn getDropCallback(self: *Window) ?DropCallback {
-        const win = self.toIntern();
-        _ = win; // autofix
         return self.toIntern().dropCallback;
     }
 };
@@ -1013,7 +874,7 @@ const WindowInternal = struct {
     scrollCallback: ?ScrollCallback = null,
     dropCallback: ?DropCallback = null,
 
-    pub fn toExtern(self: *WindowInternal) *Window {
+    pub inline fn toExtern(self: *WindowInternal) *Window {
         return @ptrCast(@alignCast(self));
     }
 };
@@ -1035,33 +896,22 @@ pub const Image = struct {
     height: u32,
 };
 
-pub const StandardCursor = enum {
-    Arrow,
-    IBeam,
-    Crosshair,
-    Hand,
-    HResize,
-    VResize,
+pub const StandardCursor = enum(u32) {
+    Arrow = @bitCast(c.GLFW_ARROW_CURSOR),
+    IBeam = @bitCast(c.GLFW_IBEAM_CURSOR),
+    Crosshair = @bitCast(c.GLFW_CROSSHAIR_CURSOR),
+    Hand = @bitCast(c.GLFW_HAND_CURSOR),
+    HResize = @bitCast(c.GLFW_HRESIZE_CURSOR),
+    VResize = @bitCast(c.GLFW_VRESIZE_CURSOR),
 };
 
-inline fn stdCur2Glfw(cursor: StandardCursor) c_int {
-    return switch (cursor) {
-        .Arrow => c.GLFW_ARROW_CURSOR,
-        .IBeam => c.GLFW_IBEAM_CURSOR,
-        .Crosshair => c.GLFW_CROSSHAIR_CURSOR,
-        .Hand => c.GLFW_HAND_CURSOR,
-        .HResize => c.GLFW_HRESIZE_CURSOR,
-        .VResize => c.GLFW_VRESIZE_CURSOR,
-    };
-}
-
 pub const Cursor = opaque {
-    fn toIntern(self: *Cursor) *CursorInternal {
+    inline fn toIntern(self: *Cursor) *CursorInternal {
         return @ptrCast(@alignCast(self));
     }
 
     pub fn createStandard(allocator: Allocator, cursor: StandardCursor, errStr: ?*[]const u8) Error!*Cursor {
-        const ptr = c.glfwCreateStandardCursor(stdCur2Glfw(cursor)) orelse
+        const ptr = c.glfwCreateStandardCursor(@bitCast(@intFromEnum(cursor))) orelse
             return getError(errStr);
         errdefer c.glfwDestroyCursor(ptr);
 
@@ -1112,7 +962,7 @@ const CursorInternal = struct {
     allocator: Allocator,
     ptr: *c.GLFWcursor,
 
-    pub fn toExtern(self: *CursorInternal) *Cursor {
+    pub inline fn toExtern(self: *CursorInternal) *Cursor {
         return @ptrCast(@alignCast(self));
     }
 };
