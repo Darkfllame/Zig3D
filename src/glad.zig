@@ -1557,21 +1557,21 @@ pub const ShaderProgram = struct {
     ///         - location is an invalid uniform `location` for the current program objectand `location` is not equal to -1.
     ///
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glGetUniformLocation.xhtml for more infos.
-    pub fn setUniformLoc(self: ShaderProgram, location: ?u32, value: anytype) Error!void {
+    pub fn setUniformLoc(location: ?u32, value: anytype) Error!void {
         if (location == null) return;
 
         const T = @TypeOf(value);
         const tinfo = @typeInfo(T);
 
         switch (T) {
-            // this is an horror ikr
-            Mat2f, Mat2d, Mat3f, Mat3d, Mat4f, Mat4d => try setUniformLoc(self, location, @as([@typeInfo(@TypeOf(value.fields)).Array.len * @typeInfo(@TypeOf(value.fields)).Array.len]@typeInfo(@typeInfo(@TypeOf(value.fields)).Array.child).Array.child, @bitCast(value))),
+            // apparently by "length" they khronos meant "objectCount" for some reasons
+            Mat2f, Mat2d, Mat3f, Mat3d, Mat4f, Mat4d => @field(c, SelectArrayFunctionName(T))(@intCast(location.?), 1, @ptrCast(@alignCast(&value))),
             else => switch (tinfo) {
-                inline .Struct, .Int, .Float => try setUniformLoc(self, location, [1]T{value}),
+                inline .Struct, .Int, .Float => try setUniformLoc(location, [1]T{value}),
                 inline .Array => |d| @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), d.len, @ptrCast(@alignCast(&value))),
                 inline .Pointer => |d| {
                     switch (d.size) {
-                        .One => try setUniformLoc(self, location.?, value.*),
+                        .One => try setUniformLoc(location.?, value.*),
                         .Slice => @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), @intCast(value.len), @ptrCast(@alignCast(value))),
                         else => @compileError("Pointers passed to ShaderProgram.setUniformLoc() must be pointer-to-one or slice, got " ++ @tagName(d.size)),
                     }
@@ -1583,7 +1583,7 @@ pub const ShaderProgram = struct {
     }
     // setUniformLoc but accepts a string name instead of a location
     pub fn setUniform(self: ShaderProgram, name: [:0]const u8, value: anytype) Error!void {
-        try self.setUniformLoc(self.uniformLocation(name), value);
+        try setUniformLoc(self.uniformLocation(name), value);
     }
 
     pub fn dispatchCompute(x: u32, y: u32, z: u32) void {
