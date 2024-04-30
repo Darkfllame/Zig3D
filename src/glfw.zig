@@ -1,7 +1,9 @@
 const std = @import("std");
 const utils = @import("utils");
 pub const Key = @import("Key").Key;
-const c = @import("glfw_externs.zig");
+const c = @cImport({
+    @cInclude("GLFW/glfw3.h");
+});
 
 extern var _glfw: extern struct {
     initialized: c_int,
@@ -677,7 +679,7 @@ pub const Window = opaque {
             };
         }
     }
-    fn dropCallback(window: ?*c.GLFWwindow, pathCount: c_int, paths: [*]const [*]const u8) callconv(.C) void {
+    fn dropCallback(window: ?*c.GLFWwindow, pathCount: c_int, paths: [*c][*c]const u8) callconv(.C) void {
         const win = windowFromGlfw(window.?).toIntern();
         if (win.dropCallback) |f| {
             const pathsSlice: [][]const u8 = win.allocator.alloc([]u8, @intCast(pathCount)) catch |e| {
