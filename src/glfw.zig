@@ -2,6 +2,7 @@ const std = @import("std");
 const utils = @import("utils");
 pub const Key = @import("Key").Key;
 const c = @cImport({
+    @cDefine("__gl_h_", "");
     @cInclude("GLFW/glfw3.h");
 });
 
@@ -571,7 +572,6 @@ pub const Window = opaque {
     }
 
     pub fn create(title: []const u8, width: u32, height: u32, hint: WindowHint, errStr: ?*[]const u8) Error!*Window {
-        // TODO: use glfw window's user pointer to store additional datas
         const glfwAlloc = _glfw.allocator.user;
         const allocator = if (glfwAlloc) |alloc|
             @as(*Allocator, @ptrCast(@alignCast(alloc))).*

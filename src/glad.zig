@@ -7,7 +7,7 @@ const zlmd = zlm.SpecializeOn(f64);
 const zlmi = zlm.SpecializeOn(i32);
 const zlmu = zlm.SpecializeOn(u32);
 const c = @cImport({
-    @cInclude("GLAD/glad.h");
+    @cInclude("glad/glad.h");
 });
 
 pub usingnamespace if (@import("build_options").exposeC) struct {
