@@ -1567,7 +1567,7 @@ pub const ShaderProgram = struct {
 
         switch (T) {
             // apparently by "length" they khronos meant "objectCount" for some reasons
-            Mat2f, Mat2d, Mat3f, Mat3d, Mat4f, Mat4d => @field(c, SelectArrayFunctionName(T))(@intCast(location.?), 1, @ptrCast(@alignCast(&value))),
+            Mat2f, Mat2d, Mat3f, Mat3d, Mat4f, Mat4d => @field(c, SelectArrayFunctionName(T))(@intCast(location.?), 1, @intFromBool(false), @ptrCast(@alignCast(&value))),
             else => switch (tinfo) {
                 inline .Struct, .Int, .Float => try setUniformLoc(location, [1]T{value}),
                 inline .Array => |d| @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), d.len, @ptrCast(@alignCast(&value))),
