@@ -51,12 +51,6 @@ pub fn build(b: *std.Build) void {
     });
     KeyModule.linkLibrary(glfw.artifact("glfw"));
 
-    const utilsModule = b.createModule(.{
-        .root_source_file = b.path("src/utils.zig"),
-        .optimize = optimize,
-        .target = target,
-    });
-
     const glfwModule = b.addModule("glfw", .{
         .root_source_file = b.path("src/glfw.zig"),
         .link_libc = true,
@@ -67,10 +61,7 @@ pub fn build(b: *std.Build) void {
                 .name = "Key",
                 .module = KeyModule,
             },
-            .{
-                .name = "utils",
-                .module = utilsModule,
-            },
+
             .{
                 .name = "build_options",
                 .module = build_options,
@@ -85,10 +76,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
         .imports = &.{
-            .{
-                .name = "utils",
-                .module = utilsModule,
-            },
             .{
                 .name = "zlm",
                 .module = zlm.module("zlm"),
@@ -108,10 +95,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .imports = &.{
             .{
-                .name = "utils",
-                .module = utilsModule,
-            },
-            .{
                 .name = "zlm",
                 .module = zlm.module("zlm"),
             },
@@ -127,10 +110,6 @@ pub fn build(b: *std.Build) void {
             .{
                 .name = "glfw",
                 .module = glfwModule,
-            },
-            .{
-                .name = "utils",
-                .module = utilsModule,
             },
             .{
                 .name = "image",
@@ -169,10 +148,6 @@ pub fn build(b: *std.Build) void {
                 .module = gladModule,
             },
             .{
-                .name = "utils",
-                .module = utilsModule,
-            },
-            .{
                 .name = "zlm",
                 .module = zlm.module("zlm"),
             },
@@ -189,6 +164,13 @@ pub fn build(b: *std.Build) void {
 
     libModule.addImport("zig3d", libModule);
 
+    const utilsModule = b.addModule("utils", .{
+        .root_source_file = b.path("examples/utils.zig"),
+        .optimize = optimize,
+        .target = target,
+    });
+    _ = utilsModule;
+
     makeDemo(b, libModule, buildAllDemos, "demo", "Run the simple demo app", optimize, target);
     makeDemo(b, libModule, buildAllDemos, "quad", "Run the demo quad app", optimize, target);
     makeDemo(b, libModule, buildAllDemos, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
@@ -203,6 +185,7 @@ fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, forceInstall: bool, com
         .target = target,
     });
     demo.root_module.addImport("zig3d", libmodule);
+    demo.root_module.addImport("utils", b.modules.get("utils").?);
 
     const install = b.addInstallArtifact(demo, .{});
     if (forceInstall) {

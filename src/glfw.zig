@@ -1,5 +1,4 @@
 const std = @import("std");
-const utils = @import("utils");
 pub const Key = @import("Key").Key;
 const c = @cImport({
     @cDefine("__gl_h_", "");
@@ -336,11 +335,8 @@ inline fn inputModeValue2Glfw(mode: InputMode) c_int {
 ///
 /// Prefer using setClipboardZ() whenever possible.
 pub fn setClipboard(allocator: Allocator, str: []const u8) Allocator.Error!void {
-    const str_copy = utils.copy(
-        u8,
-        str,
-        try allocator.allocSentinel(u8, str.len, 0),
-    );
+    const str_copy = try allocator.allocSentinel(u8, str.len, 0);
+    @memcpy(str_copy, str);
     defer allocator.free(str_copy);
 
     setClipboardZ(str_copy);
@@ -733,11 +729,8 @@ pub const Window = opaque {
 
         const allocator = getCurrentAllocator();
 
-        const title_copy = utils.copy(
-            u8,
-            title,
-            allocator.allocSentinel(u8, title.len, 0) catch return Error.OutOfMemory,
-        );
+        const title_copy = try allocator.allocSentinel(u8, title.len, 0);
+        @memcpy(title_copy, title);
 
         c.glfwSetWindowTitle(@ptrCast(@alignCast(self)), title_copy.ptr);
 

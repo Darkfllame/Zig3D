@@ -1,5 +1,6 @@
 const std = @import("std");
 const zig3d = @import("zig3d");
+const utils = @import("utils");
 
 const glfw = zig3d.glfw;
 const glad = zig3d.glad;
@@ -57,7 +58,7 @@ pub fn main() !void {
 
     var errStr: []const u8 = "";
     glfw.init(&errStr) catch |e| {
-        return zig3d.println(
+        return utils.println(
             "Error occurred: {s}: Cannot initialize GLFW: {s}",
             .{
                 @errorName(e),
@@ -66,7 +67,7 @@ pub fn main() !void {
         );
     };
     defer glfw.terminate();
-    try zig3d.println("Using GLFW version: {d}.{d}.{d}", glfw.getVersion());
+    try utils.println("Using GLFW version: {d}.{d}.{d}", glfw.getVersion());
 
     var window = glfw.Window.create(
         "Hello, Window!",
@@ -86,7 +87,7 @@ pub fn main() !void {
         null,
         &errStr,
     ) catch |e| {
-        return zig3d.println(
+        return utils.println(
             "Error occurred: {s}: Cannot create window: {s}",
             .{
                 @errorName(e),
@@ -102,7 +103,7 @@ pub fn main() !void {
     }
 
     const glVersion = glad.init(&glfw.getProcAddress) catch |e| {
-        return zig3d.println(
+        return utils.println(
             "Error occurred: {s}: Cannot load OpenGL",
             .{
                 @errorName(e),
@@ -110,7 +111,7 @@ pub fn main() !void {
         );
     };
     defer glad.deinit();
-    try zig3d.println("Using OpenGL version: {d}.{d}", glVersion);
+    try utils.println("Using OpenGL version: {d}.{d}", glVersion);
 
     // init()
 
@@ -150,7 +151,7 @@ pub fn main() !void {
         var vertex = glad.Shader.create(.Vertex);
         defer vertex.destroy();
         _ = vertex.source(vertexShaderSource).compile(allocator) catch |e| {
-            return zig3d.println(
+            return utils.println(
                 "Error occurred: {s}: Cannot compile shader: {s}",
                 .{
                     @errorName(e),
@@ -161,7 +162,7 @@ pub fn main() !void {
         var fragment = glad.Shader.create(.Fragment);
         defer fragment.destroy();
         _ = fragment.source(fragmentShaderSource).compile(allocator) catch |e| {
-            return zig3d.println(
+            return utils.println(
                 "Error occurred: {s}: Cannot compile shader: {s}",
                 .{
                     @errorName(e),
@@ -172,7 +173,7 @@ pub fn main() !void {
         _ = program.attachShader(vertex)
             .attachShader(fragment)
             .linkProgram(allocator) catch |e| {
-            return zig3d.println(
+            return utils.println(
                 "Error occurred: {s}: Cannot compile shader: {s}",
                 .{
                     @errorName(e),
@@ -203,13 +204,13 @@ pub fn main() !void {
         {
             delta += dt;
             if (delta >= 1) {
-                try zig3d.println("FPS: {d:.0}", .{1 / dt});
+                try utils.println("FPS: {d:.0}", .{1 / dt});
                 delta = 0;
             }
         }
 
         glfw.pollEvents() catch |e| {
-            return zig3d.println("Caught error during event polling: {s}", .{@errorName(e)});
+            return utils.println("Caught error during event polling: {s}", .{@errorName(e)});
         };
 
         // update()
@@ -217,10 +218,10 @@ pub fn main() !void {
         {
             const rpm = 60;
             const nowRot = rpm * now;
-            offsets[3] = @floatCast(@sin(zig3d.toRadians * nowRot));
-            offsets[4] = @floatCast(@cos(zig3d.toRadians * nowRot));
-            offsets[6] = @floatCast(@sin(zig3d.toRadians * (nowRot - 180)));
-            offsets[7] = @floatCast(@cos(zig3d.toRadians * (nowRot - 180)));
+            offsets[3] = @floatCast(@sin(zig3d.zlm.toRadians(nowRot)));
+            offsets[4] = @floatCast(@cos(zig3d.zlm.toRadians(nowRot)));
+            offsets[6] = @floatCast(@sin(zig3d.zlm.toRadians((nowRot - 180))));
+            offsets[7] = @floatCast(@cos(zig3d.zlm.toRadians((nowRot - 180))));
             IBO.bind(.Array);
             glad.Buffer.subdataTarget(.Array, 3, f32, offsets[3..8]) catch unreachable;
             glad.Buffer.unbindAny(.Array);

@@ -1,7 +1,6 @@
 const std = @import("std");
 const zlm = @import("zlm");
 const zlmi = @import("zlm").SpecializeOn(i32);
-const utils = @import("utils");
 
 const ArrayList = std.ArrayList;
 const Vec2f = zlm.Vec2;
@@ -15,12 +14,10 @@ pub const Image = struct {
     height: u32,
 
     pub fn clone(self: *const Image, allocator: Allocator) Allocator.Error!Image {
+        const pixels = try allocator.alloc(u8, self.pixels.len);
+        @memcpy(pixels, self.pixels);
         return .{
-            .pixels = utils.copy(
-                u8,
-                self.pixels,
-                try allocator.alloc(u8, self.pixels.len),
-            ),
+            .pixels = pixels,
             .width = self.width,
             .height = self.height,
         };

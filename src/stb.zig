@@ -1,5 +1,4 @@
 const std = @import("std");
-const utils = @import("utils");
 const glfw = @import("glfw");
 const image = @import("image");
 const c = @cImport({
@@ -27,13 +26,9 @@ pub const Image = struct {
     channels: u32,
 
     pub fn load(allocator: Allocator, filename: []const u8, errStr: ?*[]const u8) Allocator.Error!?Image {
-        const filenameZ = utils.copy(
-            u8,
-            filename,
-            try allocator.alloc(u8, filename.len + 1),
-        );
+        const filenameZ = try allocator.allocSentinel(u8, filename.len + 1);
+        @memcpy(filenameZ, filename);
         defer allocator.free(filenameZ);
-        filenameZ[filename.len] = 0;
 
         return loadZ(filenameZ[0..filename.len :0], errStr);
     }
