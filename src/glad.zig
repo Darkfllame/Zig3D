@@ -1177,7 +1177,6 @@ pub const ShaderProgram = struct {
             c.glGetProgramiv(@intCast(self.id), c.GL_INFO_LOG_LENGTH, @ptrCast(&length));
 
             const log = try allocator.alloc(u8, length);
-            errdefer allocator.free(log);
 
             c.glGetProgramInfoLog(@intCast(self.id), @intCast(length), null, @ptrCast(log.ptr));
 
