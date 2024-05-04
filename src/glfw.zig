@@ -9,8 +9,6 @@ extern var _glfw: extern struct {
     allocator: c.GLFWallocator,
 };
 
-extern "C" fn strlen(s: [*c]const u8) usize;
-
 var errorMessage: ?[]const u8 = null;
 
 var errorCallback: ?ErrorCallback = null;
@@ -87,16 +85,15 @@ fn errFromC(code: c_int) Error {
     };
 }
 fn getError(description: ?*[]const u8) Error {
-    var desc: []u8 = undefined;
+    var desc: [*c]u8 = null;
     const err = errFromC(c.glfwGetError(@ptrCast(&desc.ptr)));
     if (err != Error.NoError) {
-        desc.len = strlen(desc.ptr);
-        errorMessage = desc;
+        errorMessage = std.mem.span(desc);
+        if (description) |d| d.* = std.mem.span(desc);
     } else {
         errorMessage = null;
-        desc = "";
+        if (description) |d| d.* = "";
     }
-    if (description) |d| d.* = desc;
     return err;
 }
 
@@ -474,9 +471,7 @@ pub const Window = opaque {
             defer getCurrentAllocator().free(pathsSlice);
 
             for (0..@intCast(pathCount)) |i| {
-                const str = paths[i];
-                const len: usize = @intCast(strlen(str));
-                pathsSlice[i] = str[0..len];
+                pathsSlice[i] = std.mem.span(paths[i]);
             }
 
             f(@ptrCast(@alignCast(window)), pathsSlice) catch |e| {
@@ -861,9 +856,7 @@ pub const Monitor = opaque {
         c.glfwGetMonitorContentScale(@ptrCast(@alignCast(self)), w, h);
     }
     pub fn getName(self: *Monitor) []const u8 {
-        const ptr = c.glfwGetMonitorName(@ptrCast(@alignCast(self)));
-        const len = strlen(ptr);
-        return ptr[0..len];
+        return std.mem.span(c.glfwGetMonitorName(@ptrCast(@alignCast(self))));
     }
     pub fn getPhysicalSize(self: *Monitor, w: ?*u32, h: u32) void {
         c.glfwGetMonitorPhysicalSize(@ptrCast(@alignCast(self)), @ptrCast(w), @ptrCast(h));
@@ -915,9 +908,8 @@ pub fn setErrorCallback(cb: ?ErrorCallback) void {
         var first: bool = true;
 
         pub fn inner(errorCode: c_int, description: [*c]const u8) callconv(.C) void {
-            const len = strlen(description);
             if (errorCallback) |f| {
-                f(@errorFromInt(errorCode), description[0..len]);
+                f(@errorFromInt(errorCode), std.mem.span(description));
             }
         }
     };
@@ -969,13 +961,11 @@ pub fn setClipboardZ(str: [:0]const u8) void {
 
 /// Query the clipboard content.
 pub fn getClipboard() ?[]const u8 {
-    const str = c.glfwGetClipboardString(null) orelse return null;
-    return str[0..strlen(str)];
+    return std.mem.span(c.glfwGetClipboardString(null) orelse return null);
 }
 
 pub fn getKeyName(key: Key) []const u8 {
-    const str = c.glfwGetKeyName(@bitCast(@intFromEnum(key)), 0);
-    return str[0..strlen(str)];
+    return std.mem.span(c.glfwGetKeyName(@bitCast(@intFromEnum(key)), 0));
 }
 
 /// Get the current allocator set by glfwInitAllocator.

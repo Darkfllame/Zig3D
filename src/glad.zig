@@ -15,8 +15,6 @@ pub usingnamespace if (@import("build_options").exposeC) struct {
 
 const Allocator = std.mem.Allocator;
 
-extern "C" fn strlen(s: [*c]const u8) usize;
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // math types
 
@@ -625,11 +623,11 @@ pub fn cullFace(face: Face) void {
 
 pub fn getString(name: StringName) ?[]const u8 {
     const str = c.glGetString(@bitCast(@intFromEnum(name)));
-    return if (str) str[0..strlen(name)] else null;
+    return if (str != null) std.mem.span(str) else null;
 }
 pub fn getStringI(name: StringName, index: u32) ?[]const u8 {
     const str = c.glGetStringi(@bitCast(@intFromEnum(name)), @bitCast(index));
-    return if (str) str[0..strlen(name)] else null;
+    return if (str != null) std.mem.span(str) else null;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
