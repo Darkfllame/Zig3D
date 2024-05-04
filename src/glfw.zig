@@ -86,7 +86,7 @@ fn errFromC(code: c_int) Error {
 }
 fn getError(description: ?*[]const u8) Error {
     var desc: [*c]u8 = null;
-    const err = errFromC(c.glfwGetError(@ptrCast(&desc.ptr)));
+    const err = errFromC(c.glfwGetError(@ptrCast(&desc)));
     if (err != Error.NoError) {
         errorMessage = std.mem.span(desc);
         if (description) |d| d.* = std.mem.span(desc);
