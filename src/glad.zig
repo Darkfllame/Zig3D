@@ -51,7 +51,7 @@ pub const Mat4u = zlmu.Mat4;
 // function types
 
 pub const GladLoadProc = *const fn ([*c]const u8) callconv(.C) ?*anyopaque;
-pub const DebugProc = *const fn (source: DebugSource, kind: DebugType, id: u32, severity: DebugSeverity, message: []const u8, userData: ?*anyopaque) void;
+pub const DebugProc = *const fn (source: DebugSource, kind: DebugType, errId: Error, severity: DebugSeverity, message: []const u8, userData: ?*anyopaque) void;
 
 var messageAllocator: ?Allocator = null;
 var errMessage: ?[]const u8 = null;
@@ -857,7 +857,7 @@ pub fn debugMessageCallback(callback: DebugProc, userParam: ?*anyopaque) void {
         ) callconv(.C) void {
             const zSource = dbSrcFromGL(source);
             const zKind = dbTypeFromGL(@"type");
-            const zId: u32 = @intCast(id);
+            const zId = errFromC(id);
             const zSev = dbSevFromGL(severity);
             const len: usize = @intCast(@as(c_uint, @bitCast(length)));
             const zMessage: []const u8 = message[0..len];
@@ -1588,7 +1588,7 @@ pub const ShaderProgram = struct {
 
         switch (T) {
             // apparently by "length" they khronos meant "objectCount" for some reasons
-            Mat2f, Mat2d, Mat3f, Mat3d, Mat4f, Mat4d => @field(c, SelectArrayFunctionName(T))(@intCast(location.?), 1, @ptrCast(@alignCast(&value))),
+            Mat2f, Mat2d, Mat3f, Mat3d, Mat4f, Mat4d => @field(c, SelectArrayFunctionName(T))(@intCast(location.?), 1, @intFromBool(false), @ptrCast(@alignCast(&value))),
             else => switch (tinfo) {
                 inline .Struct, .Int, .Float => try setUniformLoc(location, [1]T{value}),
                 inline .Array => |d| @field(c, SelectArrayFunctionName(d.child))(@intCast(location.?), d.len, @ptrCast(@alignCast(&value))),
