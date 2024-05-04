@@ -414,7 +414,7 @@ pub const Window = opaque {
     fn buttonCallback(window: ?*c.GLFWwindow, button: c_int, action: c_int, mods: c_int) callconv(.C) void {
         const win = @as(*WindowInternal, @ptrCast(@alignCast(c.glfwGetWindowUserPointer(window))));
         if (win.buttonCallback) |f| {
-            const kMods: Key.Mods = @bitCast(mods);
+            const kMods: Key.Mods = @truncate(mods);
             f(
                 @ptrCast(@alignCast(window)),
                 @bitCast(button),
@@ -429,7 +429,7 @@ pub const Window = opaque {
         _ = scancode;
         const win = @as(*WindowInternal, @ptrCast(@alignCast(c.glfwGetWindowUserPointer(window))));
         if (win.keyCallback) |f| {
-            const kMods: Key.Mods = @bitCast(mods);
+            const kMods: Key.Mods = @truncate(mods);
             f(
                 @ptrCast(@alignCast(window)),
                 @enumFromInt(@as(u32, @bitCast(key))),
