@@ -82,6 +82,8 @@ pub fn main() !void {
                 .minor = 6,
             },
         },
+        null,
+        null,
         &errStr,
     ) catch |e| {
         return zig3d.println(
@@ -112,7 +114,7 @@ pub fn main() !void {
 
     // init()
 
-    glad.debugMessageCallback(debugCallback, null);
+    glad.debugMessageCallback(&debugCallback, null);
 
     var VAO = glad.VertexArray.gen();
     defer VAO.destroy();
@@ -245,23 +247,23 @@ pub fn main() !void {
     // quit()
 }
 
-fn debugCallback(source: glad.DebugSource, kind: glad.DebugType, id: u32, severity: glad.DebugSeverity, message: []const u8, userData: ?*anyopaque) void {
+fn debugCallback(source: glad.DebugSource, kind: glad.DebugType, id: glad.Error, severity: glad.DebugSeverity, message: []const u8, userData: ?*anyopaque) void {
     _ = userData; // autofix
     if (severity == .Notification) {
         std.debug.print(
-            \\[DEBUG] ({d}) {s} from {s}
+            \\[DEBUG] ({s}) {s} from {s}
             \\  {s}
             \\
         ,
-            .{ id, @tagName(kind), @tagName(source), message },
+            .{ @errorName(id), @tagName(kind), @tagName(source), message },
         );
     } else {
         std.debug.print(
-            \\[ERROR {s}] ({d}) {d} from {d}
+            \\[ERROR {s}] ({s}) {d} from {d}
             \\  {s}
             \\
         ,
-            .{ @tagName(severity), id, @tagName(kind), @tagName(source), message },
+            .{ @tagName(severity), @errorName(id), @tagName(kind), @tagName(source), message },
         );
     }
 }

@@ -77,6 +77,8 @@ pub fn main() !void {
                 .minor = 6,
             },
         },
+        null,
+        null,
         &errStr,
     ) catch |e| {
         return zig3d.println(

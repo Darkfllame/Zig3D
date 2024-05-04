@@ -35,6 +35,8 @@ pub fn main() !void {
                 .minor = 6,
             },
         },
+        null,
+        null,
         &errStr,
     ) catch |e| {
         return zig3d.println(
@@ -61,6 +63,7 @@ pub fn main() !void {
     // init()
 
     zig3d.glad.viewport(0, 0, 800, 600);
+    window.setResizable(true);
     window.show();
     while (!window.shouldClose()) {
         zig3d.glfw.pollEvents() catch |e| {

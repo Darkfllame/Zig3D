@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
     const options = b.addOptions();
 
     const exposeC = b.option(bool, "exposeC", "set whether to expose the underlaying c API of the wrappers") orelse false;
-    const buildAllDemos = b.option(bool, "buildAllDemos", "set whether to force building all the demos") orelse false;
+    const buildAllDemos = b.option(bool, "buildAll", "set whether to force building all the demos") orelse false;
 
     options.addOption(bool, "exposeC", exposeC);
 
@@ -206,7 +206,7 @@ fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, forceInstall: bool, com
 
     const install = b.addInstallArtifact(demo, .{});
     if (forceInstall) {
-        b.install_tls.step.dependOn(&install.step);
+        b.getInstallStep().dependOn(&install.step);
     }
 
     const demo_run = b.addRunArtifact(demo);
