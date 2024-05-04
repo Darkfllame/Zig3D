@@ -1229,12 +1229,33 @@ pub const VertexArray = struct {
         c.glDisableVertexArrayAttrib(@intCast(self.id), @intCast(location));
     }
 
+    /// will converts ints to floats, use vertexAttribI instead if you wanna use ints
     pub fn vertexAttrib(location: u32, size: u32, comptime T: type, normalized: bool, stride: usize, offset: usize) void {
-        c.glVertexAttribPointer(
+        if (T != f64) {
+            c.glVertexAttribPointer(
+                location,
+                @bitCast(size),
+                type2GL(T),
+                @intFromBool(normalized),
+                @intCast(stride),
+                @ptrFromInt(offset),
+            );
+        } else {
+            c.glVertexAttribLPointer(
+                location,
+                @bitCast(size),
+                type2GL(T),
+                @intCast(stride),
+                @ptrFromInt(offset),
+            );
+        }
+    }
+    /// only for ints
+    pub fn vertexAttribI(location: u32, size: u32, comptime T: type, stride: usize, offset: usize) void {
+        c.glVertexAttribIPointer(
             location,
             @bitCast(size),
             type2GL(T),
-            @intFromBool(normalized),
             @intCast(stride),
             @ptrFromInt(offset),
         );
