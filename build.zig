@@ -44,24 +44,12 @@ pub fn build(b: *std.Build) void {
     });
     freetypeModule.linkLibrary(freetype.artifact("freetype"));
 
-    const KeyModule = b.createModule(.{
-        .root_source_file = b.path("src/Key.zig"),
-        .optimize = optimize,
-        .target = target,
-    });
-    KeyModule.linkLibrary(glfw.artifact("glfw"));
-
     const glfwModule = b.addModule("glfw", .{
         .root_source_file = b.path("src/glfw.zig"),
         .link_libc = true,
         .optimize = optimize,
         .target = target,
         .imports = &.{
-            .{
-                .name = "Key",
-                .module = KeyModule,
-            },
-
             .{
                 .name = "build_options",
                 .module = build_options,
@@ -119,10 +107,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
         .imports = &.{
-            .{
-                .name = "Key",
-                .module = KeyModule,
-            },
             .{
                 .name = "glfw",
                 .module = glfwModule,
