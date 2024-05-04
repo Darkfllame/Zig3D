@@ -1,5 +1,4 @@
 const std = @import("std");
-pub const Key = @import("Key").Key;
 const c = @cImport({
     @cDefine("__gl_h_", "");
     @cInclude("GLFW/glfw3.h");
@@ -12,23 +11,65 @@ extern var _glfw: extern struct {
 
 extern "C" fn strlen(s: [*c]const u8) usize;
 
-pub usingnamespace if (@import("build_options").exposeC) struct {
-    pub const capi = c;
-} else struct {};
+var errorMessage: ?[]const u8 = null;
 
-pub const Error = error{
-    NoError,
-    NotInitialized,
-    NoCurrentContext,
-    InvalidEnum,
-    InvalidValue,
-    OutOfMemory,
-    ApiUnavailable,
-    VersionUnavailable,
-    Platform,
-    FormatUnavailable,
-    NoWindowContext,
-};
+var errorCallback: ?ErrorCallback = null;
+var pollErr: ?anyerror = null;
+
+const Allocator = std.mem.Allocator;
+
+inline fn windowHint(hint: WindowHint) void {
+    const wHint = c.glfwWindowHint;
+    const wHintS = c.glfwWindowHintString;
+    wHint(c.GLFW_RESIZABLE, @intFromBool(hint.resizable));
+    wHint(c.GLFW_VISIBLE, @intFromBool(hint.visible));
+    wHint(c.GLFW_DECORATED, @intFromBool(hint.decorated));
+    wHint(c.GLFW_FOCUSED, @intFromBool(hint.focused));
+    wHint(c.GLFW_AUTO_ICONIFY, @intFromBool(hint.autoIconify));
+    wHint(c.GLFW_FLOATING, @intFromBool(hint.floating));
+    wHint(c.GLFW_MAXIMIZED, @intFromBool(hint.maximized));
+    wHint(c.GLFW_CENTER_CURSOR, @intFromBool(hint.centerCursor));
+    wHint(c.GLFW_TRANSPARENT_FRAMEBUFFER, @intFromBool(hint.transparentFramebuffer));
+    wHint(c.GLFW_FOCUS_ON_SHOW, @intFromBool(hint.focusOnShow));
+    wHint(c.GLFW_SCALE_TO_MONITOR, @intFromBool(hint.scaleToMonitor));
+    wHint(c.GLFW_RED_BITS, @bitCast(hint.redBits));
+    wHint(c.GLFW_GREEN_BITS, @bitCast(hint.greenBits));
+    wHint(c.GLFW_BLUE_BITS, @bitCast(hint.blueBits));
+    wHint(c.GLFW_ALPHA_BITS, @bitCast(hint.alphaBits));
+    wHint(c.GLFW_DEPTH_BITS, @bitCast(hint.depthBits));
+    wHint(c.GLFW_STENCIL_BITS, @bitCast(hint.stencilBits));
+    wHint(c.GLFW_ACCUM_RED_BITS, @bitCast(hint.accumRedBits));
+    wHint(c.GLFW_ACCUM_GREEN_BITS, @bitCast(hint.accumGreenBits));
+    wHint(c.GLFW_ACCUM_BLUE_BITS, @bitCast(hint.accumBlueBits));
+    wHint(c.GLFW_ACCUM_ALPHA_BITS, @bitCast(hint.accumAphaBits));
+    wHint(c.GLFW_AUX_BUFFERS, @bitCast(hint.auxBuffers));
+    wHint(c.GLFW_SAMPLES, @bitCast(hint.samples));
+    wHint(c.GLFW_REFRESH_RATE, @bitCast(hint.refreshRate));
+    wHint(c.GLFW_STEREO, @intFromBool(hint.stereo));
+    wHint(c.GLFW_SRGB_CAPABLE, @intFromBool(hint.srgbCapable));
+    wHint(c.GLFW_DOUBLEBUFFER, @intFromBool(hint.doubleBuffer));
+    wHint(c.GLFW_CLIENT_API, @bitCast(@intFromEnum(hint.clientApi)));
+    wHint(c.GLFW_CONTEXT_CREATION_API, @bitCast(@intFromEnum(hint.creationApi)));
+    wHint(c.GLFW_CONTEXT_VERSION_MAJOR, @intCast(hint.version.major));
+    wHint(c.GLFW_CONTEXT_VERSION_MINOR, @intCast(hint.version.minor));
+    wHint(c.GLFW_CONTEXT_ROBUSTNESS, @bitCast(@intFromEnum(hint.robustness)));
+    wHint(c.GLFW_CONTEXT_RELEASE_BEHAVIOR, @bitCast(@intFromEnum(hint.releaseBehaviour)));
+    wHint(c.GLFW_OPENGL_FORWARD_COMPAT, @intFromBool(hint.forwardCompat));
+    wHint(c.GLFW_OPENGL_DEBUG_CONTEXT, @intFromBool(hint.debug));
+    wHint(c.GLFW_OPENGL_PROFILE, @bitCast(@intFromEnum(hint.openglProfile)));
+    wHint(c.GLFW_COCOA_RETINA_FRAMEBUFFER, @intFromBool(hint.cocoaRetinaFramebuffer));
+    wHintS(c.GLFW_COCOA_FRAME_NAME, hint.cocoaFrameName.ptr);
+    wHint(c.GLFW_COCOA_GRAPHICS_SWITCHING, @intFromBool(hint.cocoaGraphicsSwitching));
+    wHintS(c.GLFW_X11_CLASS_NAME, hint.x11ClassName.ptr);
+    wHintS(c.GLFW_X11_INSTANCE_NAME, hint.x11InstanceName.ptr);
+}
+
+inline fn inputModeValue2Glfw(mode: InputMode) c_int {
+    return switch (mode) {
+        .StickyKeys, .StickyMouseButtons, .LockKeyMods => |v| @intFromBool(v),
+        .Cursor => |v| @bitCast(@intFromEnum(v)),
+    };
+}
 
 fn errFromC(code: c_int) Error {
     return switch (code) {
@@ -45,9 +86,6 @@ fn errFromC(code: c_int) Error {
         else => Error.NoError,
     };
 }
-
-var errorMessage: ?[]const u8 = null;
-
 fn getError(description: ?*[]const u8) Error {
     var desc: []u8 = undefined;
     const err = errFromC(c.glfwGetError(@ptrCast(&desc.ptr)));
@@ -60,54 +98,6 @@ fn getError(description: ?*[]const u8) Error {
     }
     if (description) |d| d.* = desc;
     return err;
-}
-pub fn getErrorMessage() []const u8 {
-    return errorMessage orelse "";
-}
-
-const Allocator = std.mem.Allocator;
-
-pub const MousePosCallback = *const fn (window: *Window, x: f64, y: f64) anyerror!void;
-pub const ButtonCallback = *const fn (window: *Window, button: u32, action: Key.Action, mods: Key.Mods) anyerror!void;
-pub const KeyCallback = *const fn (window: *Window, key: Key, action: Key.Action, mods: Key.Mods) anyerror!void;
-pub const CharCallback = *const fn (window: *Window, char: u32) anyerror!void;
-pub const EnterCallback = *const fn (window: *Window, entered: bool) anyerror!void;
-pub const ScrollCallback = *const fn (window: *Window, x: f64, y: f64) anyerror!void;
-pub const DropCallback = *const fn (window: *Window, paths: []const []const u8) anyerror!void;
-pub const MonitorCallback = *const fn (monitor: *Monitor, event: MonitorEvent) void;
-pub const ErrorCallback = *const fn (errorCode: Error, description: []const u8) void;
-
-pub const GlfwVersion = struct {
-    major: u8 = 1,
-    minor: u8 = 0,
-    revision: u8 = 0,
-};
-
-pub fn getProcAddress(procname: [*c]const u8) callconv(.C) ?*anyopaque {
-    return @ptrCast(@constCast(c.glfwGetProcAddress(procname)));
-}
-
-var errorCallback: ?ErrorCallback = null;
-
-pub fn getErrorCallback() ?ErrorCallback {
-    return errorCallback;
-}
-pub fn setErrorCallback(cb: ?ErrorCallback) void {
-    const state = struct {
-        var first: bool = true;
-
-        pub fn inner(errorCode: c_int, description: [*c]const u8) callconv(.C) void {
-            const len = strlen(description);
-            if (errorCallback) |f| {
-                f(@errorFromInt(errorCode), description[0..len]);
-            }
-        }
-    };
-    if (state.first) {
-        c.glfwSetErrorCallback(&state.inner);
-        state.first = false;
-    }
-    errorCallback = cb;
 }
 
 fn allocFn(size: usize, user: ?*anyopaque) callconv(.C) ?*anyopaque {
@@ -132,50 +122,179 @@ fn deallocFn(block: ?*anyopaque, user: ?*anyopaque) callconv(.C) void {
     allocator.free(manyPtr[0 .. size + 8]);
 }
 
-pub fn initAllocator(allocator: ?*const Allocator) void {
-    c.glfwInitAllocator(if (allocator) |alloc|
-        if (alloc == &std.heap.c_allocator)
-            null
-        else
-            &.{
-                .allocate = &allocFn,
-                .reallocate = &reallocFn,
-                .deallocate = &deallocFn,
-                .user = @as(*anyopaque, @constCast(@ptrCast(@alignCast(alloc)))),
-            }
-    else
-        null);
-}
-
-pub fn init(errStr: ?*[]const u8) Error!void {
-    const status = c.glfwInit();
-    if (status != c.GLFW_TRUE) {
-        return getError(errStr);
-    }
-}
-pub fn terminate() void {
-    c.glfwTerminate();
-}
-
-pub fn getVersion() GlfwVersion {
-    return .{
-        .major = c.GLFW_VERSION_MAJOR,
-        .minor = c.GLFW_VERSION_MINOR,
-        .revision = c.GLFW_VERSION_REVISION,
-    };
-}
-
-var pollErr: ?anyerror = null;
-
-pub fn pollEvents() anyerror!void {
-    c.glfwPollEvents();
-    if (pollErr) |err| {
-        pollErr = null;
-        return err;
-    }
-}
-
 pub const DontCare: u32 = @truncate(-1);
+
+pub const MousePosCallback = *const fn (window: *Window, x: f64, y: f64) anyerror!void;
+pub const ButtonCallback = *const fn (window: *Window, button: u32, action: Key.Action, mods: Key.Mods) anyerror!void;
+pub const KeyCallback = *const fn (window: *Window, key: Key, action: Key.Action, mods: Key.Mods) anyerror!void;
+pub const CharCallback = *const fn (window: *Window, char: u32) anyerror!void;
+pub const EnterCallback = *const fn (window: *Window, entered: bool) anyerror!void;
+pub const ScrollCallback = *const fn (window: *Window, x: f64, y: f64) anyerror!void;
+pub const DropCallback = *const fn (window: *Window, paths: []const []const u8) anyerror!void;
+pub const MonitorCallback = *const fn (monitor: *Monitor, event: MonitorEvent) void;
+pub const ErrorCallback = *const fn (errorCode: Error, description: []const u8) void;
+
+pub usingnamespace if (@import("build_options").exposeC) struct {
+    pub const capi = c;
+} else struct {};
+
+pub const Error = error{
+    NoError,
+    NotInitialized,
+    NoCurrentContext,
+    InvalidEnum,
+    InvalidValue,
+    OutOfMemory,
+    ApiUnavailable,
+    VersionUnavailable,
+    Platform,
+    FormatUnavailable,
+    NoWindowContext,
+};
+
+pub const Key = enum(u32) {
+    pub const Action = enum(u32) {
+        Pressed = @bitCast(c.GLFW_PRESS),
+        Released = @bitCast(c.GLFW_RELEASE),
+        Repeat = @bitCast(c.GLFW_REPEAT),
+    };
+    pub const Mods = packed struct {
+        Shift: bool = false,
+        Control: bool = false,
+        Alt: bool = false,
+        Super: bool = false,
+        CapsLock: bool = false,
+        NumLock: bool = false,
+    };
+
+    Unknown = @bitCast(c.GLFW_KEY_UNKNOWN),
+    Space = @bitCast(c.GLFW_KEY_SPACE),
+    Apostrophe = @bitCast(c.GLFW_KEY_APOSTROPHE),
+    Comma = @bitCast(c.GLFW_KEY_COMMA),
+    Minus = @bitCast(c.GLFW_KEY_MINUS),
+    Period = @bitCast(c.GLFW_KEY_PERIOD),
+    Slash = @bitCast(c.GLFW_KEY_SLASH),
+    @"0" = @bitCast(c.GLFW_KEY_0),
+    @"1" = @bitCast(c.GLFW_KEY_1),
+    @"2" = @bitCast(c.GLFW_KEY_2),
+    @"3" = @bitCast(c.GLFW_KEY_3),
+    @"4" = @bitCast(c.GLFW_KEY_4),
+    @"5" = @bitCast(c.GLFW_KEY_5),
+    @"6" = @bitCast(c.GLFW_KEY_6),
+    @"7" = @bitCast(c.GLFW_KEY_7),
+    @"8" = @bitCast(c.GLFW_KEY_8),
+    @"9" = @bitCast(c.GLFW_KEY_9),
+    Semicolon = @bitCast(c.GLFW_KEY_SEMICOLON),
+    Equal = @bitCast(c.GLFW_KEY_EQUAL),
+    A = @bitCast(c.GLFW_KEY_A),
+    B = @bitCast(c.GLFW_KEY_B),
+    C = @bitCast(c.GLFW_KEY_C),
+    D = @bitCast(c.GLFW_KEY_D),
+    E = @bitCast(c.GLFW_KEY_E),
+    F = @bitCast(c.GLFW_KEY_F),
+    G = @bitCast(c.GLFW_KEY_G),
+    H = @bitCast(c.GLFW_KEY_H),
+    I = @bitCast(c.GLFW_KEY_I),
+    J = @bitCast(c.GLFW_KEY_J),
+    K = @bitCast(c.GLFW_KEY_K),
+    L = @bitCast(c.GLFW_KEY_L),
+    M = @bitCast(c.GLFW_KEY_M),
+    N = @bitCast(c.GLFW_KEY_N),
+    O = @bitCast(c.GLFW_KEY_O),
+    P = @bitCast(c.GLFW_KEY_P),
+    Q = @bitCast(c.GLFW_KEY_Q),
+    R = @bitCast(c.GLFW_KEY_R),
+    S = @bitCast(c.GLFW_KEY_S),
+    T = @bitCast(c.GLFW_KEY_T),
+    U = @bitCast(c.GLFW_KEY_U),
+    V = @bitCast(c.GLFW_KEY_V),
+    W = @bitCast(c.GLFW_KEY_W),
+    X = @bitCast(c.GLFW_KEY_X),
+    Y = @bitCast(c.GLFW_KEY_Y),
+    Z = @bitCast(c.GLFW_KEY_Z),
+    LeftBracket = @bitCast(c.GLFW_KEY_LEFT_BRACKET),
+    Backslash = @bitCast(c.GLFW_KEY_BACKSLASH),
+    RightBracket = @bitCast(c.GLFW_KEY_RIGHT_BRACKET),
+    GraveAccent = @bitCast(c.GLFW_KEY_GRAVE_ACCENT),
+    World1 = @bitCast(c.GLFW_KEY_WORLD_1),
+    World2 = @bitCast(c.GLFW_KEY_WORLD_2),
+    Escape = @bitCast(c.GLFW_KEY_ESCAPE),
+    Enter = @bitCast(c.GLFW_KEY_ENTER),
+    Tab = @bitCast(c.GLFW_KEY_TAB),
+    Backspace = @bitCast(c.GLFW_KEY_BACKSPACE),
+    Insert = @bitCast(c.GLFW_KEY_INSERT),
+    Delete = @bitCast(c.GLFW_KEY_DELETE),
+    Right = @bitCast(c.GLFW_KEY_RIGHT),
+    Left = @bitCast(c.GLFW_KEY_LEFT),
+    Down = @bitCast(c.GLFW_KEY_DOWN),
+    Up = @bitCast(c.GLFW_KEY_UP),
+    PageUp = @bitCast(c.GLFW_KEY_PAGE_UP),
+    PageDown = @bitCast(c.GLFW_KEY_PAGE_DOWN),
+    Home = @bitCast(c.GLFW_KEY_HOME),
+    End = @bitCast(c.GLFW_KEY_END),
+    CapsLock = @bitCast(c.GLFW_KEY_CAPS_LOCK),
+    ScrollLock = @bitCast(c.GLFW_KEY_SCROLL_LOCK),
+    NumLock = @bitCast(c.GLFW_KEY_NUM_LOCK),
+    PrintScreen = @bitCast(c.GLFW_KEY_PRINT_SCREEN),
+    Pause = @bitCast(c.GLFW_KEY_PAUSE),
+    F1 = @bitCast(c.GLFW_KEY_F1),
+    F2 = @bitCast(c.GLFW_KEY_F2),
+    F3 = @bitCast(c.GLFW_KEY_F3),
+    F4 = @bitCast(c.GLFW_KEY_F4),
+    F5 = @bitCast(c.GLFW_KEY_F5),
+    F6 = @bitCast(c.GLFW_KEY_F6),
+    F7 = @bitCast(c.GLFW_KEY_F7),
+    F8 = @bitCast(c.GLFW_KEY_F8),
+    F9 = @bitCast(c.GLFW_KEY_F9),
+    F10 = @bitCast(c.GLFW_KEY_F10),
+    F11 = @bitCast(c.GLFW_KEY_F11),
+    F12 = @bitCast(c.GLFW_KEY_F12),
+    F13 = @bitCast(c.GLFW_KEY_F13),
+    F14 = @bitCast(c.GLFW_KEY_F14),
+    F15 = @bitCast(c.GLFW_KEY_F15),
+    F16 = @bitCast(c.GLFW_KEY_F16),
+    F17 = @bitCast(c.GLFW_KEY_F17),
+    F18 = @bitCast(c.GLFW_KEY_F18),
+    F19 = @bitCast(c.GLFW_KEY_F19),
+    F20 = @bitCast(c.GLFW_KEY_F20),
+    F21 = @bitCast(c.GLFW_KEY_F21),
+    F22 = @bitCast(c.GLFW_KEY_F22),
+    F23 = @bitCast(c.GLFW_KEY_F23),
+    F24 = @bitCast(c.GLFW_KEY_F24),
+    F25 = @bitCast(c.GLFW_KEY_F25),
+    Kp0 = @bitCast(c.GLFW_KEY_KP_0),
+    Kp1 = @bitCast(c.GLFW_KEY_KP_1),
+    Kp2 = @bitCast(c.GLFW_KEY_KP_2),
+    Kp3 = @bitCast(c.GLFW_KEY_KP_3),
+    Kp4 = @bitCast(c.GLFW_KEY_KP_4),
+    Kp5 = @bitCast(c.GLFW_KEY_KP_5),
+    Kp6 = @bitCast(c.GLFW_KEY_KP_6),
+    Kp7 = @bitCast(c.GLFW_KEY_KP_7),
+    Kp8 = @bitCast(c.GLFW_KEY_KP_8),
+    Kp9 = @bitCast(c.GLFW_KEY_KP_9),
+    KpDecimal = @bitCast(c.GLFW_KEY_KP_DECIMAL),
+    KpDivide = @bitCast(c.GLFW_KEY_KP_DIVIDE),
+    KpMultiply = @bitCast(c.GLFW_KEY_KP_MULTIPLY),
+    KpSubtract = @bitCast(c.GLFW_KEY_KP_SUBTRACT),
+    KpAdd = @bitCast(c.GLFW_KEY_KP_ADD),
+    KpEnter = @bitCast(c.GLFW_KEY_KP_ENTER),
+    KpEqual = @bitCast(c.GLFW_KEY_KP_EQUAL),
+    LeftShift = @bitCast(c.GLFW_KEY_LEFT_SHIFT),
+    LeftControl = @bitCast(c.GLFW_KEY_LEFT_CONTROL),
+    LeftAlt = @bitCast(c.GLFW_KEY_LEFT_ALT),
+    LeftSuper = @bitCast(c.GLFW_KEY_LEFT_SUPER),
+    RightShift = @bitCast(c.GLFW_KEY_RIGHT_SHIFT),
+    RightControl = @bitCast(c.GLFW_KEY_RIGHT_CONTROL),
+    RightAlt = @bitCast(c.GLFW_KEY_RIGHT_ALT),
+    RightSuper = @bitCast(c.GLFW_KEY_RIGHT_SUPER),
+    Menu = @bitCast(c.GLFW_KEY_MENU),
+};
+
+pub const GlfwVersion = struct {
+    major: u8 = 1,
+    minor: u8 = 0,
+    revision: u8 = 0,
+};
 
 pub const GlfwAPI = enum(u32) {
     OpenGL = @intCast(c.GLFW_OPENGL_API),
@@ -256,246 +375,25 @@ pub const WindowHint = struct {
     x11InstanceName: [:0]const u8 = "",
 };
 
-inline fn windowHint(hint: WindowHint) void {
-    const wHint = c.glfwWindowHint;
-    const wHintS = c.glfwWindowHintString;
-    wHint(c.GLFW_RESIZABLE, @intFromBool(hint.resizable));
-    wHint(c.GLFW_VISIBLE, @intFromBool(hint.visible));
-    wHint(c.GLFW_DECORATED, @intFromBool(hint.decorated));
-    wHint(c.GLFW_FOCUSED, @intFromBool(hint.focused));
-    wHint(c.GLFW_AUTO_ICONIFY, @intFromBool(hint.autoIconify));
-    wHint(c.GLFW_FLOATING, @intFromBool(hint.floating));
-    wHint(c.GLFW_MAXIMIZED, @intFromBool(hint.maximized));
-    wHint(c.GLFW_CENTER_CURSOR, @intFromBool(hint.centerCursor));
-    wHint(c.GLFW_TRANSPARENT_FRAMEBUFFER, @intFromBool(hint.transparentFramebuffer));
-    wHint(c.GLFW_FOCUS_ON_SHOW, @intFromBool(hint.focusOnShow));
-    wHint(c.GLFW_SCALE_TO_MONITOR, @intFromBool(hint.scaleToMonitor));
-    wHint(c.GLFW_RED_BITS, @bitCast(hint.redBits));
-    wHint(c.GLFW_GREEN_BITS, @bitCast(hint.greenBits));
-    wHint(c.GLFW_BLUE_BITS, @bitCast(hint.blueBits));
-    wHint(c.GLFW_ALPHA_BITS, @bitCast(hint.alphaBits));
-    wHint(c.GLFW_DEPTH_BITS, @bitCast(hint.depthBits));
-    wHint(c.GLFW_STENCIL_BITS, @bitCast(hint.stencilBits));
-    wHint(c.GLFW_ACCUM_RED_BITS, @bitCast(hint.accumRedBits));
-    wHint(c.GLFW_ACCUM_GREEN_BITS, @bitCast(hint.accumGreenBits));
-    wHint(c.GLFW_ACCUM_BLUE_BITS, @bitCast(hint.accumBlueBits));
-    wHint(c.GLFW_ACCUM_ALPHA_BITS, @bitCast(hint.accumAphaBits));
-    wHint(c.GLFW_AUX_BUFFERS, @bitCast(hint.auxBuffers));
-    wHint(c.GLFW_SAMPLES, @bitCast(hint.samples));
-    wHint(c.GLFW_REFRESH_RATE, @bitCast(hint.refreshRate));
-    wHint(c.GLFW_STEREO, @intFromBool(hint.stereo));
-    wHint(c.GLFW_SRGB_CAPABLE, @intFromBool(hint.srgbCapable));
-    wHint(c.GLFW_DOUBLEBUFFER, @intFromBool(hint.doubleBuffer));
-    wHint(c.GLFW_CLIENT_API, @bitCast(@intFromEnum(hint.clientApi)));
-    wHint(c.GLFW_CONTEXT_CREATION_API, @bitCast(@intFromEnum(hint.creationApi)));
-    wHint(c.GLFW_CONTEXT_VERSION_MAJOR, @intCast(hint.version.major));
-    wHint(c.GLFW_CONTEXT_VERSION_MINOR, @intCast(hint.version.minor));
-    wHint(c.GLFW_CONTEXT_ROBUSTNESS, @bitCast(@intFromEnum(hint.robustness)));
-    wHint(c.GLFW_CONTEXT_RELEASE_BEHAVIOR, @bitCast(@intFromEnum(hint.releaseBehaviour)));
-    wHint(c.GLFW_OPENGL_FORWARD_COMPAT, @intFromBool(hint.forwardCompat));
-    wHint(c.GLFW_OPENGL_DEBUG_CONTEXT, @intFromBool(hint.debug));
-    wHint(c.GLFW_OPENGL_PROFILE, @bitCast(@intFromEnum(hint.openglProfile)));
-    wHint(c.GLFW_COCOA_RETINA_FRAMEBUFFER, @intFromBool(hint.cocoaRetinaFramebuffer));
-    wHintS(c.GLFW_COCOA_FRAME_NAME, hint.cocoaFrameName.ptr);
-    wHint(c.GLFW_COCOA_GRAPHICS_SWITCHING, @intFromBool(hint.cocoaGraphicsSwitching));
-    wHintS(c.GLFW_X11_CLASS_NAME, hint.x11ClassName.ptr);
-    wHintS(c.GLFW_X11_INSTANCE_NAME, hint.x11InstanceName.ptr);
-}
-
 pub const CursorInputMode = enum(u32) {
     Normal = @intCast(c.GLFW_CURSOR_NORMAL),
     Hidden = @intCast(c.GLFW_CURSOR_HIDDEN),
     Disabled = @intCast(c.GLFW_CURSOR_DISABLED),
 };
+
 pub const InputModeTag = enum(u32) {
     StickyKeys = @intCast(c.GLFW_STICKY_KEYS),
     StickyMouseButtons = @intCast(c.GLFW_STICKY_MOUSE_BUTTONS),
     LockKeyMods = @intCast(c.GLFW_LOCK_KEY_MODS),
     Cursor = @intCast(c.GLFW_CURSOR),
 };
+
 pub const InputMode = union(InputModeTag) {
     StickyKeys: bool,
     StickyMouseButtons: bool,
     LockKeyMods: bool,
     Cursor: CursorInputMode,
 };
-
-inline fn inputModeValue2Glfw(mode: InputMode) c_int {
-    return switch (mode) {
-        .StickyKeys, .StickyMouseButtons, .LockKeyMods => |v| @intFromBool(v),
-        .Cursor => |v| @bitCast(@intFromEnum(v)),
-    };
-}
-
-/// Set the clipboard content.
-///
-/// The possible error is needed
-/// to convert the slice to a
-/// null terminated C string.
-///
-/// Prefer using setClipboardZ() whenever possible.
-pub fn setClipboard(allocator: Allocator, str: []const u8) Allocator.Error!void {
-    const str_copy = try allocator.allocSentinel(u8, str.len, 0);
-    @memcpy(str_copy, str);
-    defer allocator.free(str_copy);
-
-    setClipboardZ(str_copy);
-}
-pub fn setClipboardZ(str: [:0]const u8) void {
-    c.glfwSetClipboardString(null, str.ptr);
-}
-/// Query the clipboard content.
-pub fn getClipboard() ?[]const u8 {
-    const str = c.glfwGetClipboardString(null) orelse return null;
-    return str[0..strlen(str)];
-}
-
-pub fn getKeyName(key: Key) []const u8 {
-    const str = c.glfwGetKeyName(@bitCast(@intFromEnum(key)), 0);
-    return str[0..strlen(str)];
-}
-
-inline fn keyFromGlfw(key: c_int) Key {
-    return switch (key) {
-        c.GLFW_KEY_SPACE => .Space,
-        c.GLFW_KEY_APOSTROPHE => .Apostrophe,
-        c.GLFW_KEY_COMMA => .Comma,
-        c.GLFW_KEY_MINUS => .Minus,
-        c.GLFW_KEY_PERIOD => .Period,
-        c.GLFW_KEY_SLASH => .Slash,
-        c.GLFW_KEY_0 => .@"0",
-        c.GLFW_KEY_1 => .@"1",
-        c.GLFW_KEY_2 => .@"2",
-        c.GLFW_KEY_3 => .@"3",
-        c.GLFW_KEY_4 => .@"4",
-        c.GLFW_KEY_5 => .@"5",
-        c.GLFW_KEY_6 => .@"6",
-        c.GLFW_KEY_7 => .@"7",
-        c.GLFW_KEY_8 => .@"8",
-        c.GLFW_KEY_9 => .@"9",
-        c.GLFW_KEY_SEMICOLON => .Semicolon,
-        c.GLFW_KEY_EQUAL => .Equal,
-        c.GLFW_KEY_A => .A,
-        c.GLFW_KEY_B => .B,
-        c.GLFW_KEY_C => .C,
-        c.GLFW_KEY_D => .D,
-        c.GLFW_KEY_E => .E,
-        c.GLFW_KEY_F => .F,
-        c.GLFW_KEY_G => .G,
-        c.GLFW_KEY_H => .H,
-        c.GLFW_KEY_I => .I,
-        c.GLFW_KEY_J => .J,
-        c.GLFW_KEY_K => .K,
-        c.GLFW_KEY_L => .L,
-        c.GLFW_KEY_M => .M,
-        c.GLFW_KEY_N => .N,
-        c.GLFW_KEY_O => .O,
-        c.GLFW_KEY_P => .P,
-        c.GLFW_KEY_Q => .Q,
-        c.GLFW_KEY_R => .R,
-        c.GLFW_KEY_S => .S,
-        c.GLFW_KEY_T => .T,
-        c.GLFW_KEY_U => .U,
-        c.GLFW_KEY_V => .V,
-        c.GLFW_KEY_W => .W,
-        c.GLFW_KEY_X => .X,
-        c.GLFW_KEY_Y => .Y,
-        c.GLFW_KEY_Z => .Z,
-        c.GLFW_KEY_LEFT_BRACKET => .LeftBracket,
-        c.GLFW_KEY_BACKSLASH => .Backslash,
-        c.GLFW_KEY_RIGHT_BRACKET => .RightBracket,
-        c.GLFW_KEY_GRAVE_ACCENT => .GraveAccent,
-        c.GLFW_KEY_WORLD_1 => .World1,
-        c.GLFW_KEY_WORLD_2 => .World2,
-        c.GLFW_KEY_ESCAPE => .Escape,
-        c.GLFW_KEY_ENTER => .Enter,
-        c.GLFW_KEY_TAB => .Tab,
-        c.GLFW_KEY_BACKSPACE => .Backspace,
-        c.GLFW_KEY_INSERT => .Insert,
-        c.GLFW_KEY_DELETE => .Delete,
-        c.GLFW_KEY_RIGHT => .Right,
-        c.GLFW_KEY_LEFT => .Left,
-        c.GLFW_KEY_DOWN => .Down,
-        c.GLFW_KEY_UP => .Up,
-        c.GLFW_KEY_PAGE_UP => .PageUp,
-        c.GLFW_KEY_PAGE_DOWN => .PageDown,
-        c.GLFW_KEY_HOME => .Home,
-        c.GLFW_KEY_END => .End,
-        c.GLFW_KEY_CAPS_LOCK => .CapsLock,
-        c.GLFW_KEY_SCROLL_LOCK => .ScrollLock,
-        c.GLFW_KEY_NUM_LOCK => .NumLock,
-        c.GLFW_KEY_PRINT_SCREEN => .PrintScreen,
-        c.GLFW_KEY_PAUSE => .Pause,
-        c.GLFW_KEY_F1 => .F1,
-        c.GLFW_KEY_F2 => .F2,
-        c.GLFW_KEY_F3 => .F3,
-        c.GLFW_KEY_F4 => .F4,
-        c.GLFW_KEY_F5 => .F5,
-        c.GLFW_KEY_F6 => .F6,
-        c.GLFW_KEY_F7 => .F7,
-        c.GLFW_KEY_F8 => .F8,
-        c.GLFW_KEY_F9 => .F9,
-        c.GLFW_KEY_F10 => .F10,
-        c.GLFW_KEY_F11 => .F11,
-        c.GLFW_KEY_F12 => .F12,
-        c.GLFW_KEY_F13 => .F13,
-        c.GLFW_KEY_F14 => .F14,
-        c.GLFW_KEY_F15 => .F15,
-        c.GLFW_KEY_F16 => .F16,
-        c.GLFW_KEY_F17 => .F17,
-        c.GLFW_KEY_F18 => .F18,
-        c.GLFW_KEY_F19 => .F19,
-        c.GLFW_KEY_F20 => .F20,
-        c.GLFW_KEY_F21 => .F21,
-        c.GLFW_KEY_F22 => .F22,
-        c.GLFW_KEY_F23 => .F23,
-        c.GLFW_KEY_F24 => .F24,
-        c.GLFW_KEY_F25 => .F25,
-        c.GLFW_KEY_KP_0 => .Kp0,
-        c.GLFW_KEY_KP_1 => .Kp1,
-        c.GLFW_KEY_KP_2 => .Kp2,
-        c.GLFW_KEY_KP_3 => .Kp3,
-        c.GLFW_KEY_KP_4 => .Kp4,
-        c.GLFW_KEY_KP_5 => .Kp5,
-        c.GLFW_KEY_KP_6 => .Kp6,
-        c.GLFW_KEY_KP_7 => .Kp7,
-        c.GLFW_KEY_KP_8 => .Kp8,
-        c.GLFW_KEY_KP_9 => .Kp9,
-        c.GLFW_KEY_KP_DECIMAL => .KpDecimal,
-        c.GLFW_KEY_KP_DIVIDE => .KpDivide,
-        c.GLFW_KEY_KP_MULTIPLY => .KpMultiply,
-        c.GLFW_KEY_KP_SUBTRACT => .KpSubtract,
-        c.GLFW_KEY_KP_ADD => .KpAdd,
-        c.GLFW_KEY_KP_ENTER => .KpEnter,
-        c.GLFW_KEY_KP_EQUAL => .KpEqual,
-        c.GLFW_KEY_LEFT_SHIFT => .LeftShift,
-        c.GLFW_KEY_LEFT_CONTROL => .LeftControl,
-        c.GLFW_KEY_LEFT_ALT => .LeftAlt,
-        c.GLFW_KEY_LEFT_SUPER => .LeftSuper,
-        c.GLFW_KEY_RIGHT_SHIFT => .RightShift,
-        c.GLFW_KEY_RIGHT_CONTROL => .RightControl,
-        c.GLFW_KEY_RIGHT_ALT => .RightAlt,
-        c.GLFW_KEY_RIGHT_SUPER => .RightSuper,
-        c.GLFW_KEY_MENU => .Menu,
-        else => .Unknown,
-    };
-}
-inline fn actionFromGlfw(action: c_int) Key.Action {
-    return switch (action) {
-        c.GLFW_PRESS => .Pressed,
-        c.GLFW_REPEAT => .Repeat,
-        else => .Released,
-    };
-}
-
-/// Get the current allocator set by glfwInitAllocator.
-/// If no allocator was given then it returns std.heap.c_allocator
-pub fn getCurrentAllocator() Allocator {
-    return if (_glfw.allocator.user) |alloc|
-        @as(*Allocator, @ptrCast(@alignCast(alloc))).*
-    else
-        std.heap.c_allocator;
-}
 
 /// The main data structure of GLFW.
 pub const Window = opaque {
@@ -516,14 +414,7 @@ pub const Window = opaque {
     fn buttonCallback(window: ?*c.GLFWwindow, button: c_int, action: c_int, mods: c_int) callconv(.C) void {
         const win = @as(*WindowInternal, @ptrCast(@alignCast(c.glfwGetWindowUserPointer(window))));
         if (win.buttonCallback) |f| {
-            const kMods: Key.Mods = .{
-                .Shift = mods & c.GLFW_MOD_SHIFT != 0,
-                .Control = mods & c.GLFW_MOD_CONTROL != 0,
-                .Alt = mods & c.GLFW_MOD_ALT != 0,
-                .Super = mods & c.GLFW_MOD_SUPER != 0,
-                .CapsLock = mods & c.GLFW_MOD_CAPS_LOCK != 0,
-                .NumLock = mods & c.GLFW_MOD_NUM_LOCK != 0,
-            };
+            const kMods: Key.Mods = @bitCast(mods);
             f(
                 @ptrCast(@alignCast(window)),
                 @bitCast(button),
@@ -538,14 +429,7 @@ pub const Window = opaque {
         _ = scancode;
         const win = @as(*WindowInternal, @ptrCast(@alignCast(c.glfwGetWindowUserPointer(window))));
         if (win.keyCallback) |f| {
-            const kMods: Key.Mods = .{
-                .Shift = mods & c.GLFW_MOD_SHIFT != 0,
-                .Control = mods & c.GLFW_MOD_CONTROL != 0,
-                .Alt = mods & c.GLFW_MOD_ALT != 0,
-                .Super = mods & c.GLFW_MOD_SUPER != 0,
-                .CapsLock = mods & c.GLFW_MOD_CAPS_LOCK != 0,
-                .NumLock = mods & c.GLFW_MOD_NUM_LOCK != 0,
-            };
+            const kMods: Key.Mods = @bitCast(mods);
             f(
                 @ptrCast(@alignCast(window)),
                 @enumFromInt(@as(u32, @bitCast(key))),
@@ -991,3 +875,114 @@ pub const Monitor = opaque {
         c.glfwGetMonitorWorkarea(@ptrCast(@alignCast(self)), @ptrCast(x), @ptrCast(y), @ptrCast(w), @ptrCast(h));
     }
 };
+
+pub fn initAllocator(allocator: ?*const Allocator) void {
+    c.glfwInitAllocator(if (allocator) |alloc|
+        if (alloc == &std.heap.c_allocator)
+            null
+        else
+            &.{
+                .allocate = &allocFn,
+                .reallocate = &reallocFn,
+                .deallocate = &deallocFn,
+                .user = @as(*anyopaque, @constCast(@ptrCast(@alignCast(alloc)))),
+            }
+    else
+        null);
+}
+
+pub fn init(errStr: ?*[]const u8) Error!void {
+    const status = c.glfwInit();
+    if (status != c.GLFW_TRUE) {
+        return getError(errStr);
+    }
+}
+
+pub fn terminate() void {
+    c.glfwTerminate();
+}
+
+pub fn getProcAddress(procname: [*c]const u8) callconv(.C) ?*anyopaque {
+    return @ptrCast(@constCast(c.glfwGetProcAddress(procname)));
+}
+
+pub fn getErrorCallback() ?ErrorCallback {
+    return errorCallback;
+}
+
+pub fn setErrorCallback(cb: ?ErrorCallback) void {
+    const state = struct {
+        var first: bool = true;
+
+        pub fn inner(errorCode: c_int, description: [*c]const u8) callconv(.C) void {
+            const len = strlen(description);
+            if (errorCallback) |f| {
+                f(@errorFromInt(errorCode), description[0..len]);
+            }
+        }
+    };
+    if (state.first) {
+        c.glfwSetErrorCallback(&state.inner);
+        state.first = false;
+    }
+    errorCallback = cb;
+}
+
+pub fn getErrorMessage() []const u8 {
+    return errorMessage orelse "";
+}
+
+pub fn getVersion() GlfwVersion {
+    return .{
+        .major = c.GLFW_VERSION_MAJOR,
+        .minor = c.GLFW_VERSION_MINOR,
+        .revision = c.GLFW_VERSION_REVISION,
+    };
+}
+
+pub fn pollEvents() anyerror!void {
+    c.glfwPollEvents();
+    if (pollErr) |err| {
+        pollErr = null;
+        return err;
+    }
+}
+
+/// Set the clipboard content.
+///
+/// The possible error is needed
+/// to convert the slice to a
+/// null terminated C string.
+///
+/// Prefer using setClipboardZ() whenever possible.
+pub fn setClipboard(allocator: Allocator, str: []const u8) Allocator.Error!void {
+    const str_copy = try allocator.allocSentinel(u8, str.len, 0);
+    @memcpy(str_copy, str);
+    defer allocator.free(str_copy);
+
+    setClipboardZ(str_copy);
+}
+
+pub fn setClipboardZ(str: [:0]const u8) void {
+    c.glfwSetClipboardString(null, str.ptr);
+}
+
+/// Query the clipboard content.
+pub fn getClipboard() ?[]const u8 {
+    const str = c.glfwGetClipboardString(null) orelse return null;
+    return str[0..strlen(str)];
+}
+
+pub fn getKeyName(key: Key) []const u8 {
+    const str = c.glfwGetKeyName(@bitCast(@intFromEnum(key)), 0);
+    return str[0..strlen(str)];
+}
+
+/// Get the current allocator set by glfwInitAllocator.
+/// If no allocator was given then it returns std.heap.c_allocator
+pub fn getCurrentAllocator() Allocator {
+    return if (_glfw.allocator.user) |alloc|
+        @as(*Allocator, @ptrCast(@alignCast(alloc))).*
+    else
+        std.heap.c_allocator;
+}
