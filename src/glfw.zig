@@ -11,11 +11,7 @@ extern var _glfw: extern struct {
     allocator: c.GLFWallocator,
 };
 
-pub fn strlen(s: [*c]const u8) usize {
-    var ss = s;
-    while (ss[1] != 0) ss += 1;
-    return @intFromPtr(ss - @intFromPtr(s));
-}
+extern "C" fn strlen(s: [*c]const u8) usize;
 
 pub usingnamespace if (@import("build_options").exposeC) struct {
     pub const capi = c;

@@ -153,7 +153,7 @@ pub fn main() !void {
 
     var vao = glad.VertexArray.create();
     defer vao.destroy();
-    var buffers = glad.Buffer.createBuffers(2);
+    var buffers = glad.Buffer.createArray(2);
     defer glad.Buffer.destroyArray(2, &buffers);
     {
         vao.bind();
