@@ -1342,7 +1342,7 @@ pub const Texture = struct {
         c.glCreateTextures(@intCast(size), @ptrCast(arr.ptr));
         return arr;
     }
-    pub fn createArray(comptime N: comptime_int) Allocator.Error![N]Texture {
+    pub fn createArray(comptime N: comptime_int) [N]Texture {
         var texs: [N]Texture = undefined;
         c.glCreateTextures(N, @ptrCast(&texs));
         return texs;
@@ -1352,11 +1352,11 @@ pub const Texture = struct {
         c.glDeleteTextures(1, @ptrCast(&self.id));
         self.* = undefined;
     }
-    pub fn destroyArray(comptime N: comptime_int, textures: *[N]Texture) []Texture {
+    pub fn destroyArray(comptime N: comptime_int, textures: *[N]Texture) void {
         c.glDeleteTextures(N, @ptrCast(textures));
         @memset(textures, undefined);
     }
-    pub fn destroySlice(allocator: Allocator, textures: *[]Texture) []Texture {
+    pub fn destroySlice(allocator: Allocator, textures: *[]Texture) void {
         c.glDeleteTextures(@intCast(textures.len), @ptrCast(textures.ptr));
         allocator.free(textures.*);
         textures.* = undefined;
