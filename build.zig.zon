@@ -1,5 +1,5 @@
 .{
-    .name = "glad-glfw",
+    .name = "zig3d",
     .version = "0.1.0",
 
     .dependencies = .{
