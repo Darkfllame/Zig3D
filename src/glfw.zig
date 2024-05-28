@@ -4,17 +4,15 @@ const c = @cImport({
     @cInclude("GLFW/glfw3.h");
 });
 
-extern var _glfw: extern struct {
-    initialized: c_int,
-    allocator: c.GLFWallocator,
-};
+const Allocator = std.mem.Allocator;
 
 var errorMessage: ?[]const u8 = null;
 
 var errorCallback: ?ErrorCallback = null;
 var pollErr: ?anyerror = null;
 
-const Allocator = std.mem.Allocator;
+var currentInitAllocator: ?Allocator = null;
+var globalAllocator: Allocator = std.heap.c_allocator;
 
 inline fn windowHint(hint: WindowHint) void {
     const wHint = c.glfwWindowHint;
@@ -878,10 +876,11 @@ pub fn initAllocator(allocator: ?*const Allocator) void {
                 .allocate = &allocFn,
                 .reallocate = &reallocFn,
                 .deallocate = &deallocFn,
-                .user = @as(*anyopaque, @constCast(@ptrCast(@alignCast(alloc)))),
+                .user = @as(*anyopaque, @constCast(@ptrCast(alloc))),
             }
     else
         null);
+    currentInitAllocator = if (allocator) |_| allocator.? else null;
 }
 
 pub fn init(errStr: ?*[]const u8) Error!void {
@@ -889,6 +888,8 @@ pub fn init(errStr: ?*[]const u8) Error!void {
     if (status != c.GLFW_TRUE) {
         return getError(errStr);
     }
+    globalAllocator = currentInitAllocator orelse std.heap.c_allocator;
+    currentInitAllocator = null;
 }
 
 pub fn terminate() void {
@@ -968,11 +969,8 @@ pub fn getKeyName(key: Key) []const u8 {
     return std.mem.span(c.glfwGetKeyName(@bitCast(@intFromEnum(key)), 0));
 }
 
-/// Get the current allocator set by glfwInitAllocator.
-/// If no allocator was given then it returns std.heap.c_allocator
+/// Get the current allocator set by `glfwInitAllocator`.
+/// If no allocator was given before then it returns std.heap.c_allocator
 pub fn getCurrentAllocator() Allocator {
-    return if (_glfw.allocator.user) |alloc|
-        @as(*Allocator, @ptrCast(@alignCast(alloc))).*
-    else
-        std.heap.c_allocator;
+    return globalAllocator;
 }

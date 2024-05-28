@@ -6,8 +6,9 @@ pub fn build(b: *std.Build) void {
 
     const options = b.addOptions();
 
-    const exposeC = b.option(bool, "exposeC", "set whether to expose the underlaying c API of the wrappers") orelse false;
-    const buildAllDemos = b.option(bool, "buildAll", "set whether to force building all the demos") orelse false;
+    const exposeC = b.option(bool, "exposeC", "Whether to expose the underlaying c API of the wrappers (default: false)") orelse false;
+    const shared = b.option(bool, "shared", "Zhether to dynamically link GLFW, GLAD and stb (default: false)") orelse false;
+    const buildAllDemos = b.option(bool, "buildAll", "Whether to force building all the demos (default: false)") orelse false;
 
     options.addOption(bool, "exposeC", exposeC);
 
@@ -16,7 +17,7 @@ pub fn build(b: *std.Build) void {
     const glfw = b.dependency("glfw", .{
         .optimize = optimize,
         .target = target,
-        .shared = false,
+        .shared = shared,
         .x11 = true,
         .wayland = true,
         .opengl = false,
@@ -47,8 +48,6 @@ pub fn build(b: *std.Build) void {
     const glfwModule = b.addModule("glfw", .{
         .root_source_file = b.path("src/glfw.zig"),
         .link_libc = true,
-        .optimize = optimize,
-        .target = target,
         .imports = &.{
             .{
                 .name = "build_options",
@@ -58,11 +57,23 @@ pub fn build(b: *std.Build) void {
     });
     glfwModule.linkLibrary(glfw.artifact("glfw"));
 
+    const gladLibOptions = .{
+        .name = "glad",
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    };
+    const gladLib = if (shared)
+        b.addSharedLibrary(gladLibOptions)
+    else
+        b.addStaticLibrary(gladLibOptions);
+    gladLib.addIncludePath(b.path("include/"));
+    gladLib.installHeadersDirectory(b.path("include/glad/"), "glad", .{});
+    gladLib.addCSourceFile(.{ .file = b.path("src/glad.c") });
+
     const gladModule = b.addModule("glad", .{
         .root_source_file = b.path("src/glad.zig"),
         .link_libc = true,
-        .optimize = optimize,
-        .target = target,
         .imports = &.{
             .{
                 .name = "zlm",
@@ -74,14 +85,25 @@ pub fn build(b: *std.Build) void {
             },
         },
     });
-    gladModule.addIncludePath(b.path("include/"));
-    gladModule.addCSourceFile(.{ .file = b.path("src/glad.c") });
+    gladModule.linkLibrary(gladLib);
+
+    const stbLibOptions = .{
+        .name = "stb",
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    };
+    const stbLib = if (shared)
+        b.addSharedLibrary(stbLibOptions)
+    else
+        b.addStaticLibrary(stbLibOptions);
+    stbLib.addIncludePath(b.path("include/"));
+    stbLib.installHeadersDirectory(b.path("include/stb/"), "stb", .{});
+    stbLib.addCSourceFile(.{ .file = b.path("src/stbdefs.c") });
 
     const stbModule = b.addModule("stb", .{
         .root_source_file = b.path("src/stb.zig"),
         .link_libc = true,
-        .optimize = optimize,
-        .target = target,
         .imports = &.{
             .{
                 .name = "glfw",
@@ -93,19 +115,11 @@ pub fn build(b: *std.Build) void {
             },
         },
     });
-    stbModule.addIncludePath(b.path("include/"));
-    stbModule.addCSourceFile(.{
-        .file = b.path("src/stbdefs.c"),
-        .flags = &.{
-            "-Iinclude",
-        },
-    });
+    stbModule.linkLibrary(stbLib);
 
     const libModule = b.addModule("zig3d", .{
         .root_source_file = b.path("src/lib.zig"),
         .link_libc = true,
-        .optimize = optimize,
-        .target = target,
         .imports = &.{
             .{
                 .name = "glfw",
@@ -132,28 +146,27 @@ pub fn build(b: *std.Build) void {
 
     libModule.addImport("zig3d", libModule);
 
-    const utilsModule = b.addModule("utils", .{
+    const utils = b.createModule(.{
         .root_source_file = b.path("examples/utils.zig"),
-        .optimize = optimize,
         .target = target,
+        .optimize = optimize,
     });
-    _ = utilsModule;
 
-    makeDemo(b, libModule, buildAllDemos, "demo", "Run the simple demo app", optimize, target);
-    makeDemo(b, libModule, buildAllDemos, "quad", "Run the demo quad app", optimize, target);
-    makeDemo(b, libModule, buildAllDemos, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
-    makeDemo(b, libModule, buildAllDemos, "instancing", "Run the instancing demo app", optimize, target);
+    makeDemo(b, utils, buildAllDemos, "demo", "Run the simple demo app", optimize, target);
+    makeDemo(b, utils, buildAllDemos, "quad", "Run the demo quad app", optimize, target);
+    makeDemo(b, utils, buildAllDemos, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
+    makeDemo(b, utils, buildAllDemos, "instancing", "Run the instancing demo app", optimize, target);
 }
 
-fn makeDemo(b: *std.Build, libmodule: *std.Build.Module, forceInstall: bool, comptime name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {
+fn makeDemo(b: *std.Build, utils: *std.Build.Module, forceInstall: bool, comptime name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {
     const demo = b.addExecutable(.{
         .name = name,
         .root_source_file = b.path("examples/" ++ name ++ "/main.zig"),
         .optimize = optimize,
         .target = target,
     });
-    demo.root_module.addImport("zig3d", libmodule);
-    demo.root_module.addImport("utils", b.modules.get("utils").?);
+    demo.root_module.addImport("zig3d", b.modules.get("zig3d").?);
+    demo.root_module.addImport("utils", utils);
 
     const install = b.addInstallArtifact(demo, .{});
     if (forceInstall) {

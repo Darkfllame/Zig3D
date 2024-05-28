@@ -18,13 +18,9 @@
     },
 
     .paths = .{
+        "include/",
+        "src/",
         "build.zig",
         "build.zig.zon",
-        "src/",
-        "include/",
-        "examples/",
-        "README.md",
-        "texture.png",
-        ".gitignore",
     },
 }
