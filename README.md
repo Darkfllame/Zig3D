@@ -4,7 +4,7 @@ The Zig3D library is maintaned by [me](https://github.com/Darkfllame/) and is ma
 
 ## How to use
 
-To use this library you have to fetch it with zig: `zig fetch --save=zig3d https://github.com/Darkfllame/Zig3D/archive/<commit>.tar.gz`, replace `<commit>` by the commit hash of you choice or replace it with `main` (or `master`, the two works the same) for the latest update.
+To use this library you have to fetch it with zig: `zig fetch --save https://github.com/Darkfllame/Zig3D/archive/<commit>.tar.gz`, replace `<commit>` by the commit hash of you choice or replace it with `main` (or `master`, the two works the same) for the latest update.
 
 ##
 
@@ -14,6 +14,8 @@ After adding the dependency, you'll need to add:
 const zig3d = b.dependency("zig3d", .{
   .optimize = optimize,
   .target = target,
+  // if you're on windows this wont work, look at this [issue](https://github.com/Darkfllame/Zig3D/issues/1) for more infos
+  .shared = false,
   .exposeC = true, // optional, set whether to expose c apis under a "capi" namespace. This is for glad, glfw, stb and freetype (even though freetype is always exposed since I did not make the zig API yet)
 });
 
