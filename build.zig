@@ -69,6 +69,7 @@ pub fn build(b: *std.Build) void {
         b.addStaticLibrary(gladLibOptions);
     gladLib.addIncludePath(b.path("include/"));
     gladLib.installHeadersDirectory(b.path("include/glad/"), "glad", .{});
+    gladLib.installHeadersDirectory(b.path("include/KHR/"), "KHR", .{});
     gladLib.addCSourceFile(.{ .file = b.path("src/glad.c") });
 
     const gladModule = b.addModule("glad", .{
@@ -98,7 +99,7 @@ pub fn build(b: *std.Build) void {
     else
         b.addStaticLibrary(stbLibOptions);
     stbLib.addIncludePath(b.path("include/"));
-    stbLib.installHeadersDirectory(b.path("include/stb/"), "stb", .{});
+    stbLib.installHeadersDirectory(b.path("include/STB/"), "STB", .{});
     stbLib.addCSourceFile(.{ .file = b.path("src/stbdefs.c") });
 
     const stbModule = b.addModule("stb", .{
