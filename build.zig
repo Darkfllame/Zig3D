@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
         .gles = false,
         .metal = true,
     });
+    b.installArtifact(glfw.artifact("glfw"));
 
     const freetype = b.dependency("freetype", .{
         .optimize = optimize,
@@ -31,6 +32,7 @@ pub fn build(b: *std.Build) void {
         .use_system_zlib = false,
         .enable_brotli = true,
     });
+    b.installArtifact(freetype.artifact("freetype"));
 
     const zlm = b.dependency("zlm", .{});
 
@@ -71,6 +73,7 @@ pub fn build(b: *std.Build) void {
     gladLib.installHeadersDirectory(b.path("include/glad/"), "glad", .{});
     gladLib.installHeadersDirectory(b.path("include/KHR/"), "KHR", .{});
     gladLib.addCSourceFile(.{ .file = b.path("src/glad.c") });
+    b.installArtifact(gladLib);
 
     const gladModule = b.addModule("glad", .{
         .root_source_file = b.path("src/glad.zig"),
@@ -101,6 +104,7 @@ pub fn build(b: *std.Build) void {
     stbLib.addIncludePath(b.path("include/"));
     stbLib.installHeadersDirectory(b.path("include/STB/"), "STB", .{});
     stbLib.addCSourceFile(.{ .file = b.path("src/stbdefs.c") });
+    b.installArtifact(stbLib);
 
     const stbModule = b.addModule("stb", .{
         .root_source_file = b.path("src/stb.zig"),
