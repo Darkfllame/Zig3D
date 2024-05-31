@@ -880,7 +880,7 @@ pub fn initAllocator(allocator: ?*const Allocator) void {
             }
     else
         null);
-    currentInitAllocator = if (allocator) |_| allocator.? else null;
+    currentInitAllocator = if (allocator) |_| allocator.?.* else null;
 }
 
 pub fn init(errStr: ?*[]const u8) Error!void {
