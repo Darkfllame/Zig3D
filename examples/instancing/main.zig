@@ -74,7 +74,6 @@ pub fn main() !void {
         800,
         600,
         .{
-            .debug = IS_DEBUG,
             .visible = false,
             .resizable = false,
             .vsync = true,

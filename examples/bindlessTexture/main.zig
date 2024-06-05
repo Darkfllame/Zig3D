@@ -103,6 +103,10 @@ pub fn main() !void {
     };
     try utils.println("Using OpenGL version: {d}.{d}", glVersion);
 
+    if (!glad.hasExtension(.GL_ARB_bindless_texture)) {
+        return utils.println("[ERROR] Cannot find bindless texture on your hardware, can't do nothing about it sorry", .{});
+    }
+
     // init()
 
     var program = glad.ShaderProgram.create();
@@ -152,9 +156,9 @@ pub fn main() !void {
         };
     }
 
-    var vao = glad.VertexArray.create();
+    var vao = glad.VertexArray.gen();
     defer vao.destroy();
-    var buffers = glad.Buffer.createArray(2);
+    var buffers = glad.Buffer.genArray(2);
     defer glad.Buffer.destroyArray(2, &buffers);
     {
         vao.bind();

@@ -148,9 +148,9 @@ pub fn main() !void {
         };
     }
 
-    var vao = glad.VertexArray.create();
+    var vao = glad.VertexArray.gen();
     defer vao.destroy();
-    var buffers = glad.Buffer.createArray(2);
+    var buffers = glad.Buffer.genArray(2);
     defer glad.Buffer.destroyArray(2, &buffers);
     {
         vao.bind();

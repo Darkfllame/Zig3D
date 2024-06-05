@@ -16,46 +16,6 @@ pub usingnamespace if (@import("build_options").exposeC) struct {
 const Allocator = std.mem.Allocator;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// math types
-
-pub const Vec2f = zlm.Vec2;
-pub const Vec3f = zlm.Vec3;
-pub const Vec4f = zlm.Vec4;
-pub const Mat2f = zlm.Mat2;
-pub const Mat3f = zlm.Mat3;
-pub const Mat4f = zlm.Mat4;
-
-pub const Vec3d = zlmd.Vec3;
-pub const Vec2d = zlmd.Vec2;
-pub const Vec4d = zlmd.Vec4;
-pub const Mat2d = zlmd.Mat2;
-pub const Mat3d = zlmd.Mat3;
-pub const Mat4d = zlmd.Mat4;
-
-pub const Vec3i = zlmi.Vec3;
-pub const Vec2i = zlmi.Vec2;
-pub const Vec4i = zlmi.Vec4;
-pub const Mat2i = zlmi.Mat2;
-pub const Mat3i = zlmi.Mat3;
-pub const Mat4i = zlmi.Mat4;
-
-pub const Vec3u = zlmu.Vec3;
-pub const Vec2u = zlmu.Vec2;
-pub const Vec4u = zlmu.Vec4;
-pub const Mat2u = zlmu.Mat2;
-pub const Mat3u = zlmu.Mat3;
-pub const Mat4u = zlmu.Mat4;
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// function types
-
-pub const GladLoadProc = *const fn ([*c]const u8) callconv(.C) ?*anyopaque;
-pub const DebugProc = *const fn (source: DebugSource, kind: DebugType, errId: Error, severity: DebugSeverity, message: []const u8, userData: ?*anyopaque) void;
-
-var messageAllocator: ?Allocator = null;
-var errMessage: ?[]const u8 = null;
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // helper functions
 
 fn errFromC(err: c.GLenum) Error {
@@ -95,120 +55,152 @@ inline fn type2GL(comptime T: type) c.GLenum {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// utility types
+// math types
 
-pub const Capability = enum(u32) {
-    Blend = @bitCast(c.GL_BLEND),
-    ColorLogicOp = @bitCast(c.GL_COLOR_LOGIC_OP),
-    CullFace = @bitCast(c.GL_CULL_FACE),
-    DebugOutput = @bitCast(c.GL_DEBUG_OUTPUT),
-    DebugOutputSync = @bitCast(c.GL_DEBUG_OUTPUT_SYNCHRONOUS),
-    DepthClamp = @bitCast(c.GL_DEPTH_CLAMP),
-    DepthTest = @bitCast(c.GL_DEPTH_TEST),
-    Dither = @bitCast(c.GL_DITHER),
-    FramebufferSRGB = @bitCast(c.GL_FRAMEBUFFER_SRGB),
-    LineSmooth = @bitCast(c.GL_LINE_SMOOTH),
-    Multisample = @bitCast(c.GL_MULTISAMPLE),
-    PolygonOffsetFill = @bitCast(c.GL_POLYGON_OFFSET_FILL),
-    PolygonOffsetLine = @bitCast(c.GL_POLYGON_OFFSET_LINE),
-    PolygonSmooth = @bitCast(c.GL_POLYGON_SMOOTH),
-    PrimitiveRestart = @bitCast(c.GL_PRIMITIVE_RESTART),
-    PrimitiveRestartFixedIndex = @bitCast(c.GL_PRIMITIVE_RESTART_FIXED_INDEX),
-    RasterizerDiscard = @bitCast(c.GL_RASTERIZER_DISCARD),
-    SampleAlphaToCoverage = @bitCast(c.GL_SAMPLE_ALPHA_TO_COVERAGE),
-    SampleAlphaToOne = @bitCast(c.GL_SAMPLE_ALPHA_TO_ONE),
-    SampleCoverage = @bitCast(c.GL_SAMPLE_COVERAGE),
-    SampleShading = @bitCast(c.GL_SAMPLE_SHADING),
-    SampleMask = @bitCast(c.GL_SAMPLE_MASK),
-    ScissorTest = @bitCast(c.GL_SCISSOR_TEST),
-    StencilTest = @bitCast(c.GL_STENCIL_TEST),
-    TextureCubeMapSeamless = @bitCast(c.GL_TEXTURE_CUBE_MAP_SEAMLESS),
-    ProgramPointSize = @bitCast(c.GL_PROGRAM_POINT_SIZE),
+pub const Vec2f = zlm.Vec2;
+pub const Vec3f = zlm.Vec3;
+pub const Vec4f = zlm.Vec4;
+pub const Mat2f = zlm.Mat2;
+pub const Mat3f = zlm.Mat3;
+pub const Mat4f = zlm.Mat4;
+
+pub const Vec3d = zlmd.Vec3;
+pub const Vec2d = zlmd.Vec2;
+pub const Vec4d = zlmd.Vec4;
+pub const Mat2d = zlmd.Mat2;
+pub const Mat3d = zlmd.Mat3;
+pub const Mat4d = zlmd.Mat4;
+
+pub const Vec3i = zlmi.Vec3;
+pub const Vec2i = zlmi.Vec2;
+pub const Vec4i = zlmi.Vec4;
+pub const Mat2i = zlmi.Mat2;
+pub const Mat3i = zlmi.Mat3;
+pub const Mat4i = zlmi.Mat4;
+
+pub const Vec3u = zlmu.Vec3;
+pub const Vec2u = zlmu.Vec2;
+pub const Vec4u = zlmu.Vec4;
+pub const Mat2u = zlmu.Mat2;
+pub const Mat3u = zlmu.Mat3;
+pub const Mat4u = zlmu.Mat4;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// enums
+
+pub const Extension = @import("GLAD_extensions.zig").Extension;
+pub const Capability = enum(c.GLenum) {
+    Blend = c.GL_BLEND,
+    ColorLogicOp = c.GL_COLOR_LOGIC_OP,
+    CullFace = c.GL_CULL_FACE,
+    DebugOutput = c.GL_DEBUG_OUTPUT,
+    DebugOutputSync = c.GL_DEBUG_OUTPUT_SYNCHRONOUS,
+    DepthClamp = c.GL_DEPTH_CLAMP,
+    DepthTest = c.GL_DEPTH_TEST,
+    Dither = c.GL_DITHER,
+    FramebufferSRGB = c.GL_FRAMEBUFFER_SRGB,
+    LineSmooth = c.GL_LINE_SMOOTH,
+    Multisample = c.GL_MULTISAMPLE,
+    PolygonOffsetFill = c.GL_POLYGON_OFFSET_FILL,
+    PolygonOffsetLine = c.GL_POLYGON_OFFSET_LINE,
+    PolygonSmooth = c.GL_POLYGON_SMOOTH,
+    PrimitiveRestart = c.GL_PRIMITIVE_RESTART,
+    PrimitiveRestartFixedIndex = c.GL_PRIMITIVE_RESTART_FIXED_INDEX,
+    RasterizerDiscard = c.GL_RASTERIZER_DISCARD,
+    SampleAlphaToCoverage = c.GL_SAMPLE_ALPHA_TO_COVERAGE,
+    SampleAlphaToOne = c.GL_SAMPLE_ALPHA_TO_ONE,
+    SampleCoverage = c.GL_SAMPLE_COVERAGE,
+    SampleShading = c.GL_SAMPLE_SHADING,
+    SampleMask = c.GL_SAMPLE_MASK,
+    ScissorTest = c.GL_SCISSOR_TEST,
+    StencilTest = c.GL_STENCIL_TEST,
+    TextureCubeMapSeamless = c.GL_TEXTURE_CUBE_MAP_SEAMLESS,
+    ProgramPointSize = c.GL_PROGRAM_POINT_SIZE,
 };
-pub const BlendFunc = enum(u32) {
-    Zero = @bitCast(c.GL_ZERO),
-    One = @bitCast(c.GL_ONE),
-    SrcColor = @bitCast(c.GL_SRC_COLOR),
-    InvertSrcColor = @bitCast(c.GL_ONE_MINUS_SRC_COLOR),
-    DstColor = @bitCast(c.GL_DST_COLOR),
-    InvertDstColor = @bitCast(c.GL_ONE_MINUS_DST_COLOR),
-    SrcAlpha = @bitCast(c.GL_SRC_ALPHA),
-    InvertSrcAlpha = @bitCast(c.GL_ONE_MINUS_SRC_ALPHA),
-    DstAlpha = @bitCast(c.GL_DST_ALPHA),
-    InvertDstAlpha = @bitCast(c.GL_ONE_MINUS_DST_ALPHA),
-    ConstantColor = @bitCast(c.GL_CONSTANT_COLOR),
-    InvertConstantColor = @bitCast(c.GL_ONE_MINUS_CONSTANT_COLOR),
-    ConstantAlpha = @bitCast(c.GL_CONSTANT_ALPHA),
-    InvertConstantAlpha = @bitCast(c.GL_ONE_MINUS_CONSTANT_ALPHA),
-    SrcAlphaSaturate = @bitCast(c.GL_SRC_ALPHA_SATURATE),
-    Src1Color = @bitCast(c.GL_SRC1_COLOR),
-    InvertSrc1Color = @bitCast(c.GL_ONE_MINUS_SRC1_COLOR),
-    Src1Alpha = @bitCast(c.GL_SRC1_ALPHA),
-    InvertSrc1Alpha = @bitCast(c.GL_ONE_MINUS_SRC1_ALPHA),
+pub const BlendFunc = enum(c.GLenum) {
+    Zero = c.GL_ZERO,
+    One = c.GL_ONE,
+    SrcColor = c.GL_SRC_COLOR,
+    InvertSrcColor = c.GL_ONE_MINUS_SRC_COLOR,
+    DstColor = c.GL_DST_COLOR,
+    InvertDstColor = c.GL_ONE_MINUS_DST_COLOR,
+    SrcAlpha = c.GL_SRC_ALPHA,
+    InvertSrcAlpha = c.GL_ONE_MINUS_SRC_ALPHA,
+    DstAlpha = c.GL_DST_ALPHA,
+    InvertDstAlpha = c.GL_ONE_MINUS_DST_ALPHA,
+    ConstantColor = c.GL_CONSTANT_COLOR,
+    InvertConstantColor = c.GL_ONE_MINUS_CONSTANT_COLOR,
+    ConstantAlpha = c.GL_CONSTANT_ALPHA,
+    InvertConstantAlpha = c.GL_ONE_MINUS_CONSTANT_ALPHA,
+    SrcAlphaSaturate = c.GL_SRC_ALPHA_SATURATE,
+    Src1Color = c.GL_SRC1_COLOR,
+    InvertSrc1Color = c.GL_ONE_MINUS_SRC1_COLOR,
+    Src1Alpha = c.GL_SRC1_ALPHA,
+    InvertSrc1Alpha = c.GL_ONE_MINUS_SRC1_ALPHA,
 };
-pub const FrontFaceMode = enum(u32) {
-    CW = @bitCast(c.GL_CW),
-    CCW = @bitCast(c.GL_CCW),
+pub const FrontFaceMode = enum(c.GLenum) {
+    CW = c.GL_CW,
+    CCW = c.GL_CCW,
 };
-pub const DebugSource = enum(u32) {
-    Api = @bitCast(c.GL_DEBUG_SOURCE_API),
-    WindowSystem = @bitCast(c.GL_DEBUG_SOURCE_WINDOW_SYSTEM),
-    ShaderCompiler = @bitCast(c.GL_DEBUG_SOURCE_SHADER_COMPILER),
-    ThirdParty = @bitCast(c.GL_DEBUG_SOURCE_THIRD_PARTY),
-    Application = @bitCast(c.GL_DEBUG_SOURCE_APPLICATION),
-    Other = @bitCast(c.GL_DEBUG_TYPE_OTHER),
+pub const DebugSource = enum(c.GLenum) {
+    Api = c.GL_DEBUG_SOURCE_API,
+    WindowSystem = c.GL_DEBUG_SOURCE_WINDOW_SYSTEM,
+    ShaderCompiler = c.GL_DEBUG_SOURCE_SHADER_COMPILER,
+    ThirdParty = c.GL_DEBUG_SOURCE_THIRD_PARTY,
+    Application = c.GL_DEBUG_SOURCE_APPLICATION,
+    Other = c.GL_DEBUG_TYPE_OTHER,
 };
-pub const DebugType = enum(u32) {
-    Error = @bitCast(c.GL_DEBUG_TYPE_ERROR),
-    DeprecatedBehavior = @bitCast(c.GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR),
-    UndefinedBehavior = @bitCast(c.GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR),
-    Portability = @bitCast(c.GL_DEBUG_TYPE_PORTABILITY),
-    Performance = @bitCast(c.GL_DEBUG_TYPE_PERFORMANCE),
-    Marker = @bitCast(c.GL_DEBUG_TYPE_MARKER),
-    PushGroup = @bitCast(c.GL_DEBUG_TYPE_PUSH_GROUP),
-    PopGroup = @bitCast(c.GL_DEBUG_TYPE_POP_GROUP),
-    Other = @bitCast(c.GL_DEBUG_TYPE_OTHER),
+pub const DebugType = enum(c.GLenum) {
+    Error = c.GL_DEBUG_TYPE_ERROR,
+    DeprecatedBehavior = c.GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR,
+    UndefinedBehavior = c.GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR,
+    Portability = c.GL_DEBUG_TYPE_PORTABILITY,
+    Performance = c.GL_DEBUG_TYPE_PERFORMANCE,
+    Marker = c.GL_DEBUG_TYPE_MARKER,
+    PushGroup = c.GL_DEBUG_TYPE_PUSH_GROUP,
+    PopGroup = c.GL_DEBUG_TYPE_POP_GROUP,
+    Other = c.GL_DEBUG_TYPE_OTHER,
 };
-pub const DebugSeverity = enum(u32) {
-    High = @bitCast(c.GL_DEBUG_SEVERITY_HIGH),
-    Medium = @bitCast(c.GL_DEBUG_SEVERITY_MEDIUM),
-    Low = @bitCast(c.GL_DEBUG_SEVERITY_LOW),
-    Notification = @bitCast(c.GL_DEBUG_SEVERITY_NOTIFICATION),
+pub const DebugSeverity = enum(c.GLenum) {
+    High = c.GL_DEBUG_SEVERITY_HIGH,
+    Medium = c.GL_DEBUG_SEVERITY_MEDIUM,
+    Low = c.GL_DEBUG_SEVERITY_LOW,
+    Notification = c.GL_DEBUG_SEVERITY_NOTIFICATION,
 };
-pub const BufferType = enum(u32) {
-    Array = @bitCast(c.GL_ARRAY_BUFFER),
-    AtomicCounter = @bitCast(c.GL_ATOMIC_COUNTER_BUFFER),
-    CopyRead = @bitCast(c.GL_COPY_READ_BUFFER),
-    CopyWrite = @bitCast(c.GL_COPY_WRITE_BUFFER),
-    DispatchIndirect = @bitCast(c.GL_DISPATCH_INDIRECT_BUFFER),
-    DrawIndirect = @bitCast(c.GL_DRAW_INDIRECT_BUFFER),
-    ElementArray = @bitCast(c.GL_ELEMENT_ARRAY_BUFFER),
-    PixelPack = @bitCast(c.GL_PIXEL_PACK_BUFFER),
-    PixelUnpack = @bitCast(c.GL_PIXEL_UNPACK_BUFFER),
-    Query = @bitCast(c.GL_QUERY_BUFFER),
-    ShaderStorage = @bitCast(c.GL_SHADER_STORAGE_BUFFER),
-    Texture = @bitCast(c.GL_TEXTURE_BUFFER),
-    TransformFeedback = @bitCast(c.GL_TRANSFORM_FEEDBACK_BUFFER),
-    Uniform = @bitCast(c.GL_UNIFORM_BUFFER),
+pub const BufferType = enum(c.GLenum) {
+    Array = c.GL_ARRAY_BUFFER,
+    AtomicCounter = c.GL_ATOMIC_COUNTER_BUFFER,
+    CopyRead = c.GL_COPY_READ_BUFFER,
+    CopyWrite = c.GL_COPY_WRITE_BUFFER,
+    DispatchIndirect = c.GL_DISPATCH_INDIRECT_BUFFER,
+    DrawIndirect = c.GL_DRAW_INDIRECT_BUFFER,
+    ElementArray = c.GL_ELEMENT_ARRAY_BUFFER,
+    PixelPack = c.GL_PIXEL_PACK_BUFFER,
+    PixelUnpack = c.GL_PIXEL_UNPACK_BUFFER,
+    Query = c.GL_QUERY_BUFFER,
+    ShaderStorage = c.GL_SHADER_STORAGE_BUFFER,
+    Texture = c.GL_TEXTURE_BUFFER,
+    TransformFeedback = c.GL_TRANSFORM_FEEDBACK_BUFFER,
+    Uniform = c.GL_UNIFORM_BUFFER,
 };
-pub const DataAccess = enum(u32) {
-    StreamDraw = @bitCast(c.GL_STREAM_DRAW),
-    StreamRead = @bitCast(c.GL_STREAM_READ),
-    StreamCopy = @bitCast(c.GL_STREAM_COPY),
-    StaticDraw = @bitCast(c.GL_STATIC_DRAW),
-    StaticRead = @bitCast(c.GL_STATIC_READ),
-    StaticCopy = @bitCast(c.GL_STATIC_COPY),
-    DynamicDraw = @bitCast(c.GL_DYNAMIC_DRAW),
-    DynamicRead = @bitCast(c.GL_DYNAMIC_READ),
-    DynamicCopy = @bitCast(c.GL_DYNAMIC_COPY),
+pub const DataAccess = enum(c.GLenum) {
+    StreamDraw = c.GL_STREAM_DRAW,
+    StreamRead = c.GL_STREAM_READ,
+    StreamCopy = c.GL_STREAM_COPY,
+    StaticDraw = c.GL_STATIC_DRAW,
+    StaticRead = c.GL_STATIC_READ,
+    StaticCopy = c.GL_STATIC_COPY,
+    DynamicDraw = c.GL_DYNAMIC_DRAW,
+    DynamicRead = c.GL_DYNAMIC_READ,
+    DynamicCopy = c.GL_DYNAMIC_COPY,
 };
-pub const ShaderType = enum(u32) {
-    Compute = @bitCast(c.GL_COMPUTE_SHADER),
-    Vertex = @bitCast(c.GL_VERTEX_SHADER),
-    TessControl = @bitCast(c.GL_TESS_CONTROL_SHADER),
-    TessEval = @bitCast(c.GL_TESS_EVALUATION_SHADER),
-    Geometry = @bitCast(c.GL_GEOMETRY_SHADER),
-    Fragment = @bitCast(c.GL_FRAGMENT_SHADER),
+pub const ShaderType = enum(c.GLenum) {
+    Compute = c.GL_COMPUTE_SHADER,
+    Vertex = c.GL_VERTEX_SHADER,
+    TessControl = c.GL_TESS_CONTROL_SHADER,
+    TessEval = c.GL_TESS_EVALUATION_SHADER,
+    Geometry = c.GL_GEOMETRY_SHADER,
+    Fragment = c.GL_FRAGMENT_SHADER,
 };
 pub const BarrierBits = packed struct {
     pub const All = BarrierBits{
@@ -246,190 +238,193 @@ pub const BarrierBits = packed struct {
     clientMappedBuffer: bool = false,
     queryBuffer: bool = false,
 };
-pub const DrawMode = enum(u32) {
-    Points = @bitCast(c.GL_POINTS),
-    LineStrip = @bitCast(c.GL_LINE_STRIP),
-    LineLoop = @bitCast(c.GL_LINE_LOOP),
-    Lines = @bitCast(c.GL_LINES),
-    LineStripAdjacency = @bitCast(c.GL_LINE_STRIP_ADJACENCY),
-    LinesAdjacency = @bitCast(c.GL_LINES_ADJACENCY),
-    TriangleStrip = @bitCast(c.GL_TRIANGLE_STRIP),
-    TriangleFan = @bitCast(c.GL_TRIANGLE_FAN),
-    Triangles = @bitCast(c.GL_TRIANGLES),
-    TriangleStripAdjacency = @bitCast(c.GL_TRIANGLE_STRIP_ADJACENCY),
-    TrianglesAdjacency = @bitCast(c.GL_TRIANGLES_ADJACENCY),
-    Patches = @bitCast(c.GL_PATCHES),
+pub const DrawMode = enum(c.GLenum) {
+    Points = c.GL_POINTS,
+    LineStrip = c.GL_LINE_STRIP,
+    LineLoop = c.GL_LINE_LOOP,
+    Lines = c.GL_LINES,
+    LineStripAdjacency = c.GL_LINE_STRIP_ADJACENCY,
+    LinesAdjacency = c.GL_LINES_ADJACENCY,
+    TriangleStrip = c.GL_TRIANGLE_STRIP,
+    TriangleFan = c.GL_TRIANGLE_FAN,
+    Triangles = c.GL_TRIANGLES,
+    TriangleStripAdjacency = c.GL_TRIANGLE_STRIP_ADJACENCY,
+    TrianglesAdjacency = c.GL_TRIANGLES_ADJACENCY,
+    Patches = c.GL_PATCHES,
 };
-pub const Face = enum(u32) {
-    Front = @bitCast(c.GL_FRONT),
-    Back = @bitCast(c.GL_BACK),
-    FrontAndBack = @bitCast(c.GL_FRONT_AND_BACK),
+pub const Face = enum(c.GLenum) {
+    Front = c.GL_FRONT,
+    Back = c.GL_BACK,
+    FrontAndBack = c.GL_FRONT_AND_BACK,
 };
-pub const FaceMode = enum(u32) {
-    Point = @bitCast(c.GL_POINT),
-    Line = @bitCast(c.GL_LINE),
-    Fill = @bitCast(c.GL_FILL),
+pub const FaceMode = enum(c.GLenum) {
+    Point = c.GL_POINT,
+    Line = c.GL_LINE,
+    Fill = c.GL_FILL,
 };
-pub const TextureType = enum(u32) {
-    Texture1D = @bitCast(c.GL_TEXTURE_1D),
-    Texture2D = @bitCast(c.GL_TEXTURE_2D),
-    Texture3D = @bitCast(c.GL_TEXTURE_3D),
-    Array1D = @bitCast(c.GL_TEXTURE_1D_ARRAY),
-    Array2D = @bitCast(c.GL_TEXTURE_2D_ARRAY),
-    Rectangle = @bitCast(c.GL_TEXTURE_RECTANGLE),
-    CubeMap = @bitCast(c.GL_TEXTURE_CUBE_MAP),
-    ArrayCubeMap = @bitCast(c.GL_TEXTURE_CUBE_MAP_ARRAY),
-    TextureBuffer = @bitCast(c.GL_TEXTURE_BUFFER),
-    Multisample2D = @bitCast(c.GL_TEXTURE_2D_MULTISAMPLE),
-    ArrayMultisample2D = @bitCast(c.GL_TEXTURE_2D_MULTISAMPLE_ARRAY),
+pub const TextureType = enum(c.GLenum) {
+    Texture1D = c.GL_TEXTURE_1D,
+    Texture2D = c.GL_TEXTURE_2D,
+    Texture3D = c.GL_TEXTURE_3D,
+    Array1D = c.GL_TEXTURE_1D_ARRAY,
+    Array2D = c.GL_TEXTURE_2D_ARRAY,
+    Rectangle = c.GL_TEXTURE_RECTANGLE,
+    CubeMap = c.GL_TEXTURE_CUBE_MAP,
+    ArrayCubeMap = c.GL_TEXTURE_CUBE_MAP_ARRAY,
+    TextureBuffer = c.GL_TEXTURE_BUFFER,
+    Multisample2D = c.GL_TEXTURE_2D_MULTISAMPLE,
+    ArrayMultisample2D = c.GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
 };
-pub const TextureParameter = enum(u32) {
-    DepthStencilMode = @bitCast(c.GL_DEPTH_STENCIL_TEXTURE_MODE),
-    BaseLevel = @bitCast(c.GL_TEXTURE_BASE_LEVEL),
-    CompareFunc = @bitCast(c.GL_TEXTURE_COMPARE_FUNC),
-    CompareMode = @bitCast(c.GL_TEXTURE_COMPARE_MODE),
-    LodBias = @bitCast(c.GL_TEXTURE_LOD_BIAS),
-    MinFilter = @bitCast(c.GL_TEXTURE_MIN_FILTER),
-    MagFilter = @bitCast(c.GL_TEXTURE_MAG_FILTER),
-    MinLod = @bitCast(c.GL_TEXTURE_MIN_LOD),
-    MaxLod = @bitCast(c.GL_TEXTURE_MAX_LOD),
-    MaxLevel = @bitCast(c.GL_TEXTURE_MAX_LEVEL),
-    SwizzleR = @bitCast(c.GL_TEXTURE_SWIZZLE_R),
-    SwizzleG = @bitCast(c.GL_TEXTURE_SWIZZLE_G),
-    SwizzleB = @bitCast(c.GL_TEXTURE_SWIZZLE_B),
-    SwizzleA = @bitCast(c.GL_TEXTURE_SWIZZLE_A),
-    SwizzleRGBA = @bitCast(c.GL_TEXTURE_SWIZZLE_RGBA),
-    WrapS = @bitCast(c.GL_TEXTURE_WRAP_S),
-    WrapT = @bitCast(c.GL_TEXTURE_WRAP_T),
-    BorderColor = @bitCast(c.GL_TEXTURE_BORDER_COLOR),
+pub const TextureParameter = enum(c.GLenum) {
+    DepthStencilMode = c.GL_DEPTH_STENCIL_TEXTURE_MODE,
+    BaseLevel = c.GL_TEXTURE_BASE_LEVEL,
+    CompareFunc = c.GL_TEXTURE_COMPARE_FUNC,
+    CompareMode = c.GL_TEXTURE_COMPARE_MODE,
+    LodBias = c.GL_TEXTURE_LOD_BIAS,
+    MinFilter = c.GL_TEXTURE_MIN_FILTER,
+    MagFilter = c.GL_TEXTURE_MAG_FILTER,
+    MinLod = c.GL_TEXTURE_MIN_LOD,
+    MaxLod = c.GL_TEXTURE_MAX_LOD,
+    MaxLevel = c.GL_TEXTURE_MAX_LEVEL,
+    SwizzleR = c.GL_TEXTURE_SWIZZLE_R,
+    SwizzleG = c.GL_TEXTURE_SWIZZLE_G,
+    SwizzleB = c.GL_TEXTURE_SWIZZLE_B,
+    SwizzleA = c.GL_TEXTURE_SWIZZLE_A,
+    SwizzleRGBA = c.GL_TEXTURE_SWIZZLE_RGBA,
+    WrapS = c.GL_TEXTURE_WRAP_S,
+    WrapT = c.GL_TEXTURE_WRAP_T,
+    BorderColor = c.GL_TEXTURE_BORDER_COLOR,
 };
-pub const CompareFunction = enum(u32) {
-    LessEqual = @bitCast(c.GL_LEQUAL),
-    GreaterEqual = @bitCast(c.GL_GEQUAL),
-    Less = @bitCast(c.GL_LESS),
-    Greater = @bitCast(c.GL_GREATER),
-    Equal = @bitCast(c.GL_EQUAL),
-    NotEqual = @bitCast(c.GL_NOTEQUAL),
-    Always = @bitCast(c.GL_ALWAYS),
-    Never = @bitCast(c.GL_NEVER),
+pub const CompareFunction = enum(c.GLenum) {
+    LessEqual = c.GL_LEQUAL,
+    GreaterEqual = c.GL_GEQUAL,
+    Less = c.GL_LESS,
+    Greater = c.GL_GREATER,
+    Equal = c.GL_EQUAL,
+    NotEqual = c.GL_NOTEQUAL,
+    Always = c.GL_ALWAYS,
+    Never = c.GL_NEVER,
 };
-pub const CompareMode = enum(u32) {
-    RefToTexture = @bitCast(c.GL_COMPARE_REF_TO_TEXTURE),
-    None = @bitCast(c.GL_NONE),
+pub const CompareMode = enum(c.GLenum) {
+    RefToTexture = c.GL_COMPARE_REF_TO_TEXTURE,
+    None = c.GL_NONE,
 };
-pub const Filter = enum(u32) {
-    Nearest = @bitCast(c.GL_NEAREST),
-    Linear = @bitCast(c.GL_LINEAR),
+pub const Filter = enum(c.GLenum) {
+    Nearest = c.GL_NEAREST,
+    Linear = c.GL_LINEAR,
     /// Only with TextureParameter.MinFilter
-    NearestMipmapNearest = @bitCast(c.GL_NEAREST_MIPMAP_NEAREST),
+    NearestMipmapNearest = c.GL_NEAREST_MIPMAP_NEAREST,
     /// Only with TextureParameter.MinFilter
-    LinearMipmapNearest = @bitCast(c.GL_LINEAR_MIPMAP_NEAREST),
+    LinearMipmapNearest = c.GL_LINEAR_MIPMAP_NEAREST,
     /// Only with TextureParameter.MinFilter
-    NearestMipmapLinear = @bitCast(c.GL_NEAREST_MIPMAP_LINEAR),
+    NearestMipmapLinear = c.GL_NEAREST_MIPMAP_LINEAR,
     /// Only with TextureParameter.MinFilter
-    LinearMipmapLinear = @bitCast(c.GL_LINEAR_MIPMAP_LINEAR),
+    LinearMipmapLinear = c.GL_LINEAR_MIPMAP_LINEAR,
 };
-pub const WrapMode = enum(u32) {
-    ClampEdge = @bitCast(c.GL_CLAMP_TO_EDGE),
-    MirroredRepeat = @bitCast(c.GL_MIRRORED_REPEAT),
-    Repeat = @bitCast(c.GL_REPEAT),
+pub const WrapMode = enum(c.GLenum) {
+    ClampEdge = c.GL_CLAMP_TO_EDGE,
+    MirroredRepeat = c.GL_MIRRORED_REPEAT,
+    Repeat = c.GL_REPEAT,
 };
-pub const DepthStencilTextureMode = enum(u32) {
-    DepthComponent = @bitCast(c.GL_DEPTH_COMPONENT),
-    StencilIndex = @bitCast(c.GL_STENCIL_INDEX),
+pub const DepthStencilTextureMode = enum(c.GLenum) {
+    DepthComponent = c.GL_DEPTH_COMPONENT,
+    StencilIndex = c.GL_STENCIL_INDEX,
 };
-pub const Swizzle = enum(u32) {
-    Red = @bitCast(c.GL_RED),
-    Green = @bitCast(c.GL_GREEN),
-    Blue = @bitCast(c.GL_BLUE),
-    Alpha = @bitCast(c.GL_ALPHA),
-    Zero = @bitCast(c.GL_ZERO),
-    One = @bitCast(c.GL_ONE),
+pub const Swizzle = enum(c.GLenum) {
+    Red = c.GL_RED,
+    Green = c.GL_GREEN,
+    Blue = c.GL_BLUE,
+    Alpha = c.GL_ALPHA,
+    Zero = c.GL_ZERO,
+    One = c.GL_ONE,
 };
-pub const TextureFormat = enum(u32) {
-    R8 = @bitCast(c.GL_R8),
-    R8_SNORM = @bitCast(c.GL_R8_SNORM),
-    R16 = @bitCast(c.GL_R16),
-    R16_SNORM = @bitCast(c.GL_R16_SNORM),
-    RG8 = @bitCast(c.GL_RG8),
-    RG8_SNORM = @bitCast(c.GL_RG8_SNORM),
-    RG16 = @bitCast(c.GL_RG16),
-    RG16_SNORM = @bitCast(c.GL_RG16_SNORM),
-    R3_G3_B2 = @bitCast(c.GL_R3_G3_B2),
-    RGB4 = @bitCast(c.GL_RGB4),
-    RGB5 = @bitCast(c.GL_RGB5),
-    RGB8 = @bitCast(c.GL_RGB8),
-    RGB8_SNORM = @bitCast(c.GL_RGB8_SNORM),
-    RGB10 = @bitCast(c.GL_RGB10),
-    RGB12 = @bitCast(c.GL_RGB12),
-    RGB16_SNORM = @bitCast(c.GL_RGB16_SNORM),
-    RGBA2 = @bitCast(c.GL_RGBA2),
-    RGBA4 = @bitCast(c.GL_RGBA4),
-    RGB5_A1 = @bitCast(c.GL_RGB5_A1),
-    RGBA8 = @bitCast(c.GL_RGBA8),
-    RGBA8_SNORM = @bitCast(c.GL_RGBA8_SNORM),
-    RGB10_A2 = @bitCast(c.GL_RGB10_A2),
-    RGB10_A2UI = @bitCast(c.GL_RGB10_A2UI),
-    RGBA12 = @bitCast(c.GL_RGBA12),
-    RGBA16 = @bitCast(c.GL_RGBA16),
-    SRGB8 = @bitCast(c.GL_SRGB8),
-    SRGB8_ALPHA8 = @bitCast(c.GL_SRGB8_ALPHA8),
-    R16F = @bitCast(c.GL_R16F),
-    RG16F = @bitCast(c.GL_RG16F),
-    RGB16F = @bitCast(c.GL_RGB16F),
-    RGBA16F = @bitCast(c.GL_RGBA16F),
-    R32F = @bitCast(c.GL_R32F),
-    RG32F = @bitCast(c.GL_RG32F),
-    RGB32F = @bitCast(c.GL_RGB32F),
-    RGBA32F = @bitCast(c.GL_RGBA32F),
-    R11F_G11F_B10F = @bitCast(c.GL_R11F_G11F_B10F),
-    RGB9_E5 = @bitCast(c.GL_RGB9_E5),
-    R8I = @bitCast(c.GL_R8I),
-    R8UI = @bitCast(c.GL_R8UI),
-    R16I = @bitCast(c.GL_R16I),
-    R16UI = @bitCast(c.GL_R16UI),
-    R32I = @bitCast(c.GL_R32I),
-    R32UI = @bitCast(c.GL_R32UI),
-    RG8I = @bitCast(c.GL_RG8I),
-    RG8UI = @bitCast(c.GL_RG8UI),
-    RG16I = @bitCast(c.GL_RG16I),
-    RG16UI = @bitCast(c.GL_RG16UI),
-    RG32I = @bitCast(c.GL_RG32I),
-    RG32UI = @bitCast(c.GL_RG32UI),
-    RGB8I = @bitCast(c.GL_RGB8I),
-    RGB8UI = @bitCast(c.GL_RGB8UI),
-    RGB16I = @bitCast(c.GL_RGB16I),
-    RGB16UI = @bitCast(c.GL_RGB16UI),
-    RGB32I = @bitCast(c.GL_RGB32I),
-    RGB32UI = @bitCast(c.GL_RGB32UI),
-    RGBA8I = @bitCast(c.GL_RGBA8I),
-    RGBA8UI = @bitCast(c.GL_RGBA8UI),
-    RGBA16I = @bitCast(c.GL_RGBA16I),
-    RGBA16UI = @bitCast(c.GL_RGBA16UI),
-    RGBA32I = @bitCast(c.GL_RGBA32I),
-    RGBA32UI = @bitCast(c.GL_RGBA32UI),
+pub const TextureFormat = enum(c.GLenum) {
+    R8 = c.GL_R8,
+    R8_SNORM = c.GL_R8_SNORM,
+    R16 = c.GL_R16,
+    R16_SNORM = c.GL_R16_SNORM,
+    RG8 = c.GL_RG8,
+    RG8_SNORM = c.GL_RG8_SNORM,
+    RG16 = c.GL_RG16,
+    RG16_SNORM = c.GL_RG16_SNORM,
+    R3_G3_B2 = c.GL_R3_G3_B2,
+    RGB4 = c.GL_RGB4,
+    RGB5 = c.GL_RGB5,
+    RGB8 = c.GL_RGB8,
+    RGB8_SNORM = c.GL_RGB8_SNORM,
+    RGB10 = c.GL_RGB10,
+    RGB12 = c.GL_RGB12,
+    RGB16_SNORM = c.GL_RGB16_SNORM,
+    RGBA2 = c.GL_RGBA2,
+    RGBA4 = c.GL_RGBA4,
+    RGB5_A1 = c.GL_RGB5_A1,
+    RGBA8 = c.GL_RGBA8,
+    RGBA8_SNORM = c.GL_RGBA8_SNORM,
+    RGB10_A2 = c.GL_RGB10_A2,
+    RGB10_A2UI = c.GL_RGB10_A2UI,
+    RGBA12 = c.GL_RGBA12,
+    RGBA16 = c.GL_RGBA16,
+    SRGB8 = c.GL_SRGB8,
+    SRGB8_ALPHA8 = c.GL_SRGB8_ALPHA8,
+    R16F = c.GL_R16F,
+    RG16F = c.GL_RG16F,
+    RGB16F = c.GL_RGB16F,
+    RGBA16F = c.GL_RGBA16F,
+    R32F = c.GL_R32F,
+    RG32F = c.GL_RG32F,
+    RGB32F = c.GL_RGB32F,
+    RGBA32F = c.GL_RGBA32F,
+    R11F_G11F_B10F = c.GL_R11F_G11F_B10F,
+    RGB9_E5 = c.GL_RGB9_E5,
+    R8I = c.GL_R8I,
+    R8UI = c.GL_R8UI,
+    R16I = c.GL_R16I,
+    R16UI = c.GL_R16UI,
+    R32I = c.GL_R32I,
+    R32UI = c.GL_R32UI,
+    RG8I = c.GL_RG8I,
+    RG8UI = c.GL_RG8UI,
+    RG16I = c.GL_RG16I,
+    RG16UI = c.GL_RG16UI,
+    RG32I = c.GL_RG32I,
+    RG32UI = c.GL_RG32UI,
+    RGB8I = c.GL_RGB8I,
+    RGB8UI = c.GL_RGB8UI,
+    RGB16I = c.GL_RGB16I,
+    RGB16UI = c.GL_RGB16UI,
+    RGB32I = c.GL_RGB32I,
+    RGB32UI = c.GL_RGB32UI,
+    RGBA8I = c.GL_RGBA8I,
+    RGBA8UI = c.GL_RGBA8UI,
+    RGBA16I = c.GL_RGBA16I,
+    RGBA16UI = c.GL_RGBA16UI,
+    RGBA32I = c.GL_RGBA32I,
+    RGBA32UI = c.GL_RGBA32UI,
 };
-pub const BaseTextureFormat = enum(u32) {
-    RED = @bitCast(c.GL_RED),
-    RG = @bitCast(c.GL_RG),
-    RGB = @bitCast(c.GL_RGB),
-    RGBA = @bitCast(c.GL_RGBA),
+pub const BaseTextureFormat = enum(c.GLenum) {
+    RED = c.GL_RED,
+    RG = c.GL_RG,
+    RGB = c.GL_RGB,
+    RGBA = c.GL_RGBA,
 };
-pub const TextureAccess = enum(u32) {
-    ReadOnly = @bitCast(c.GL_READ_ONLY),
-    WriteOnly = @bitCast(c.GL_WRITE_ONLY),
-    ReadWrite = @bitCast(c.GL_READ_ONLY),
+pub const TextureAccess = enum(c.GLenum) {
+    ReadOnly = c.GL_READ_ONLY,
+    WriteOnly = c.GL_WRITE_ONLY,
+    ReadWrite = c.GL_READ_ONLY,
 };
-pub const StringName = enum(u32) {
-    Vendor = @bitCast(c.GL_VENDOR),
-    Renderer = @bitCast(c.GL_RENDERER),
-    Version = @bitCast(c.GL_VERSION),
-    ShadingLanguageVersion = @bitCast(c.GL_SHADING_LANGUAGE_VERSION),
-    Extensions = @bitCast(c.GL_EXTENSIONS),
+pub const StringName = enum(c.GLenum) {
+    Vendor = c.GL_VENDOR,
+    Renderer = c.GL_RENDERER,
+    Version = c.GL_VERSION,
+    ShadingLanguageVersion = c.GL_SHADING_LANGUAGE_VERSION,
+    Extensions = c.GL_EXTENSIONS,
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // side types
+
+pub const GladLoadProc = *const fn ([*c]const u8) callconv(.C) ?*anyopaque;
+pub const DebugProc = *const fn (source: DebugSource, kind: DebugType, errId: Error, severity: DebugSeverity, message: []const u8, userData: ?*anyopaque) void;
 
 pub const ClearBits = struct {
     depth: bool = false,
@@ -477,6 +472,28 @@ pub const Error = error{
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // main functions
+
+var messageAllocator: ?Allocator = null;
+var errMessage: ?[]const u8 = null;
+
+pub inline fn hasExtension(comptime ext: Extension) bool {
+    return @hasDecl(c, "GLAD_" ++ @tagName(ext)) and
+        @field(c, "GLAD_" ++ @tagName(ext)) != 0;
+}
+
+/// **Return**: How many extensions there is.
+pub fn getExtensions(extensions: ?[]const []const u8) usize {
+    var nExt: c.GLint = undefined;
+    c.glGetIntegerv(c.GL_NUM_EXTENSIONS, &nExt);
+    if (extensions) |exts| {
+        var i: c.GLint = 0;
+        while (i < nExt) : (i += 1) {
+            if (i >= exts.len) break;
+            exts[i] = std.mem.span(c.glGetStringi(c.GL_EXTENSIONS, i));
+        }
+    }
+    return @as(u32, @bitCast(nExt));
+}
 
 /// You can do try glad.checkError() to check for any
 /// OpenGL errors
@@ -625,13 +642,14 @@ pub fn getString(name: StringName) ?[]const u8 {
     const str = c.glGetString(@bitCast(@intFromEnum(name)));
     return if (str != null) std.mem.span(str) else null;
 }
+
 pub fn getStringI(name: StringName, index: u32) ?[]const u8 {
     const str = c.glGetStringi(@bitCast(@intFromEnum(name)), @bitCast(index));
     return if (str != null) std.mem.span(str) else null;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// draw calls
+// draw functions
 
 pub fn drawArrays(mode: DrawMode, first: u32, count: u32) Error!void {
     c.glDrawArrays(@bitCast(@intFromEnum(mode)), @intCast(first), @intCast(count));
@@ -867,17 +885,17 @@ pub const FColor = struct {
 };
 
 pub const VertexArray = struct {
-    id: u32 = 0,
+    id: c.GLuint = 0,
 
     pub fn gen() VertexArray {
-        var vao = VertexArray{};
-        c.glGenVertexArrays(1, @ptrCast(&vao.id));
-        return vao;
+        var id: c.GLuint = undefined;
+        c.glGenVertexArrays(1, &id);
+        return .{ .id = id };
     }
     pub fn genSlice(allocator: Allocator, count: usize) Error![]VertexArray {
         const slice = try allocator.alloc(VertexArray, count);
         // yeah dangerous cast i know thanks
-        c.glGenVertexArrays(count, @ptrCast(slice.ptr));
+        c.glGenVertexArrays(count, @ptrCast(slice));
         return slice;
     }
     pub fn genArray(comptime N: comptime_int) [N]Buffer {
@@ -887,14 +905,14 @@ pub const VertexArray = struct {
     }
 
     pub fn create() VertexArray {
-        var vao = VertexArray{};
-        c.glCreateVertexArrays(1, @ptrCast(&vao.id));
-        return vao;
+        var id: c.GLuint = undefined;
+        c.glCreateVertexArrays(1, &id);
+        return .{ .id = id };
     }
     pub fn createSlice(allocator: Allocator, count: usize) Error![]VertexArray {
         const slice = try allocator.alloc(VertexArray, count);
         // yeah dangerous cast i know thanks
-        c.glCreateVertexArrays(count, @ptrCast(slice.ptr));
+        c.glCreateVertexArrays(count, @ptrCast(slice));
         return slice;
     }
     pub fn createArray(comptime N: comptime_int) [N]Buffer {
@@ -904,11 +922,11 @@ pub const VertexArray = struct {
     }
 
     pub fn destroy(self: *VertexArray) void {
-        c.glDeleteVertexArrays(1, @ptrCast(&self.id));
+        c.glDeleteVertexArrays(1, &self.id);
         self.* = undefined;
     }
     pub fn destroySlice(allocator: Allocator, arr: *[]VertexArray) void {
-        c.glDeleteVertexArrays(@intCast(arr.len), @ptrCast(arr.ptr));
+        c.glDeleteVertexArrays(@intCast(arr.len), @ptrCast(arr));
         allocator.free(arr.*);
         arr.* = undefined;
     }
@@ -918,17 +936,17 @@ pub const VertexArray = struct {
     }
 
     pub fn bind(self: VertexArray) void {
-        c.glBindVertexArray(@intCast(self.id));
+        c.glBindVertexArray(self.id);
     }
     pub fn unbindAny() void {
         c.glBindVertexArray(0);
     }
 
     pub fn enableAttrib(self: VertexArray, location: u32) void {
-        c.glEnableVertexArrayAttrib(@intCast(self.id), @intCast(location));
+        c.glEnableVertexArrayAttrib(self.id, @intCast(location));
     }
     pub fn disableAttrib(self: VertexArray, location: u32) void {
-        c.glDisableVertexArrayAttrib(@intCast(self.id), @intCast(location));
+        c.glDisableVertexArrayAttrib(self.id, @intCast(location));
     }
 
     /// will converts ints to floats, use vertexAttribI instead if you wanna use ints
@@ -970,17 +988,17 @@ pub const VertexArray = struct {
 };
 
 pub const Buffer = struct {
-    id: u32 = 0,
+    id: c.GLuint = 0,
 
     pub fn gen() Buffer {
-        var buf = Buffer{};
-        c.glGenBuffers(1, @ptrCast(&buf.id));
-        return buf;
+        var id: c.GLuint = undefined;
+        c.glGenBuffers(1, &id);
+        return .{ .id = id };
     }
     pub fn genSlice(allocator: Allocator, count: usize) Error![]Buffer {
         const slice = try allocator.alloc(Buffer, count);
         // yeah dangerous cast i know thanks
-        c.glGenBuffers(@intCast(count), @ptrCast(slice.ptr));
+        c.glGenBuffers(@intCast(count), @ptrCast(slice));
         return slice;
     }
     pub fn genArray(comptime N: comptime_int) [N]Buffer {
@@ -993,9 +1011,9 @@ pub const Buffer = struct {
     ///
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glCreateBuffers.xhtml
     pub fn create() Buffer {
-        var buf = Buffer{};
-        c.glCreateBuffers(1, @ptrCast(&buf.id));
-        return buf;
+        var id: c.GLuint = undefined;
+        c.glCreateBuffers(1, &id);
+        return .{ .id = id };
     }
     /// Creates a non-named buffer object slice
     ///
@@ -1003,7 +1021,7 @@ pub const Buffer = struct {
     pub fn createSlice(allocator: Allocator, count: usize) Error![]Buffer {
         const slice = try allocator.alloc(Buffer, count);
         // yeah dangerous cast i know thanks
-        c.glCreateBuffers(@intCast(count), @ptrCast(slice.ptr));
+        c.glCreateBuffers(@intCast(count), @ptrCast(slice));
         return slice;
     }
     /// Creates a non-named buffer object array
@@ -1016,21 +1034,21 @@ pub const Buffer = struct {
     }
 
     pub fn destroy(self: *Buffer) void {
-        c.glDeleteBuffers(1, @ptrCast(&self.id));
+        c.glDeleteBuffers(1, &self.id);
         self.* = undefined;
     }
-    pub fn destroyArray(comptime N: comptime_int, buffers: *[N]Buffer) void {
-        c.glDeleteBuffers(@intCast(N), @ptrCast(buffers.ptr));
-        @memset(buffers, undefined);
-    }
     pub fn destroySlice(allocator: Allocator, arr: *[]Buffer) void {
-        c.glDeleteBuffers(@intCast(arr.len), @ptrCast(arr.ptr));
+        c.glDeleteBuffers(@intCast(arr.len), @ptrCast(arr));
         allocator.free(arr.*);
         arr.* = undefined;
     }
+    pub fn destroyArray(comptime N: comptime_int, buffers: *[N]Buffer) void {
+        c.glDeleteBuffers(@intCast(N), @ptrCast(buffers));
+        @memset(buffers, undefined);
+    }
 
     pub fn bind(self: Buffer, btype: BufferType) void {
-        c.glBindBuffer(@bitCast(@intFromEnum(btype)), @intCast(self.id));
+        c.glBindBuffer(@bitCast(@intFromEnum(btype)), self.id);
     }
     pub fn unbindAny(btype: BufferType) void {
         c.glBindBuffer(@bitCast(@intFromEnum(btype)), 0);
@@ -1041,19 +1059,19 @@ pub const Buffer = struct {
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml
     pub fn data(self: Buffer, comptime T: type, dat: []const T, access: DataAccess) Error!void {
         c.glNamedBufferData(
-            @intCast(self.id),
+            self.id,
             @intCast(dat.len * @sizeOf(T)),
-            @ptrCast(dat.ptr),
+            @ptrCast(dat),
             @bitCast(@intFromEnum(access)),
         );
         try checkError();
     }
     pub fn subdata(self: Buffer, offset: usize, comptime T: type, dat: []const T) Error!void {
         c.glNamedBufferSubData(
-            @intCast(self.id),
+            self.id,
             @intCast(offset),
             @intCast(dat.len * @sizeOf(T)),
-            @ptrCast(dat.ptr),
+            @ptrCast(dat),
         );
         try checkError();
     }
@@ -1064,7 +1082,7 @@ pub const Buffer = struct {
         c.glBufferData(
             @bitCast(@intFromEnum(target)),
             @intCast(dat.len * @sizeOf(T)),
-            @ptrCast(dat.ptr),
+            @ptrCast(dat),
             @bitCast(@intFromEnum(access)),
         );
         try checkError();
@@ -1074,22 +1092,22 @@ pub const Buffer = struct {
             @bitCast(@intFromEnum(target)),
             @intCast(offset * @sizeOf(T)),
             @intCast(dat.len * @sizeOf(T)),
-            @ptrCast(dat.ptr),
+            @ptrCast(dat),
         );
         try checkError();
     }
 };
 
 pub const Shader = struct {
-    id: u32 = 0,
+    id: c.GLuint = 0,
 
     pub fn create(@"type": ShaderType) Shader {
         return .{
-            .id = c.glCreateShader(@bitCast(@intFromEnum(@"type"))),
+            .id = c.glCreateShader(@intFromEnum(@"type")),
         };
     }
     pub fn destroy(self: *Shader) void {
-        c.glDeleteShader(@intCast(self.id));
+        c.glDeleteShader(self.id);
         self.* = undefined;
     }
 
@@ -1098,7 +1116,7 @@ pub const Shader = struct {
         // for some reasons the lengths arguments on this functions
         // doesn't work as intended. This is irritating.
         c.glShaderSource(
-            @intCast(self.id),
+            self.id,
             1,
             &src.ptr,
             null,
@@ -1106,16 +1124,16 @@ pub const Shader = struct {
         return self;
     }
     pub fn compile(self: *const Shader, allocator: Allocator) Error!*const Shader {
-        c.glCompileShader(@intCast(self.id));
+        c.glCompileShader(self.id);
         var status: u32 = 0;
-        c.glGetShaderiv(@intCast(self.id), c.GL_COMPILE_STATUS, @ptrCast(&status));
+        c.glGetShaderiv(self.id, c.GL_COMPILE_STATUS, @ptrCast(&status));
         if (status == c.GL_FALSE) {
             var length: usize = 0;
-            c.glGetShaderiv(@intCast(self.id), c.GL_INFO_LOG_LENGTH, @ptrCast(&length));
+            c.glGetShaderiv(self.id, c.GL_INFO_LOG_LENGTH, @ptrCast(&length));
 
             const log = try allocator.alloc(u8, length);
 
-            c.glGetShaderInfoLog(@intCast(self.id), @intCast(length), null, @ptrCast(log.ptr));
+            c.glGetShaderInfoLog(self.id, @intCast(length), null, @ptrCast(log));
 
             setErrorMessage(allocator, log);
 
@@ -1126,7 +1144,7 @@ pub const Shader = struct {
 };
 
 pub const ShaderProgram = struct {
-    id: u32 = 0,
+    id: c.GLuint = 0,
 
     pub fn create() ShaderProgram {
         return .{
@@ -1135,28 +1153,28 @@ pub const ShaderProgram = struct {
     }
     pub fn destroy(self: *ShaderProgram) void {
         if (self.id != 0)
-            c.glDeleteProgram(@intCast(self.id));
+            c.glDeleteProgram(self.id);
         self.* = undefined;
     }
 
     pub fn useProgram(self: ShaderProgram) void {
-        c.glUseProgram(@intCast(self.id));
+        c.glUseProgram(self.id);
     }
     pub fn unuseAny() void {
         c.glUseProgram(0);
     }
     pub fn ready(self: ShaderProgram, allocator: Allocator) Error!void {
-        c.glValidateProgram(@intCast(self.id));
+        c.glValidateProgram(self.id);
         var status: i32 = 0;
-        c.glGetProgramiv(@intCast(self.id), c.GL_VALIDATE_STATUS, @ptrCast(&status));
+        c.glGetProgramiv(self.id, c.GL_VALIDATE_STATUS, @ptrCast(&status));
         if (status == c.GL_FALSE) {
             var length: usize = 0;
-            c.glGetProgramiv(@intCast(self.id), c.GL_INFO_LOG_LENGTH, @ptrCast(&length));
+            c.glGetProgramiv(self.id, c.GL_INFO_LOG_LENGTH, @ptrCast(&length));
 
             const log = try allocator.alloc(u8, length);
             errdefer allocator.free(log);
 
-            c.glGetProgramInfoLog(@intCast(self.id), @intCast(length), null, @ptrCast(log.ptr));
+            c.glGetProgramInfoLog(self.id, @intCast(length), null, @ptrCast(log));
 
             setErrorMessage(allocator, log);
 
@@ -1165,20 +1183,20 @@ pub const ShaderProgram = struct {
     }
 
     pub fn attachShader(self: *const ShaderProgram, shader: Shader) *const ShaderProgram {
-        c.glAttachShader(@intCast(self.id), @intCast(shader.id));
+        c.glAttachShader(self.id, @intCast(shader.id));
         return self;
     }
     pub fn linkProgram(self: *const ShaderProgram, allocator: Allocator) Error!*const ShaderProgram {
-        c.glLinkProgram(@intCast(self.id));
+        c.glLinkProgram(self.id);
         var status: u32 = 0;
-        c.glGetProgramiv(@intCast(self.id), c.GL_LINK_STATUS, @ptrCast(&status));
+        c.glGetProgramiv(self.id, c.GL_LINK_STATUS, @ptrCast(&status));
         if (status == c.GL_FALSE) {
             var length: usize = 0;
-            c.glGetProgramiv(@intCast(self.id), c.GL_INFO_LOG_LENGTH, @ptrCast(&length));
+            c.glGetProgramiv(self.id, c.GL_INFO_LOG_LENGTH, @ptrCast(&length));
 
             const log = try allocator.alloc(u8, length);
 
-            c.glGetProgramInfoLog(@intCast(self.id), @intCast(length), null, @ptrCast(log.ptr));
+            c.glGetProgramInfoLog(self.id, @intCast(length), null, @ptrCast(log));
 
             setErrorMessage(allocator, log);
 
@@ -1199,7 +1217,7 @@ pub const ShaderProgram = struct {
     ///
     /// see https://registry.khronos.org/OpenGL-Refpages/gl4/html/glGetUniformLocation.xhtml for more infos.
     pub fn uniformLocation(self: ShaderProgram, name: [:0]const u8) ?u32 {
-        const loc = c.glGetUniformLocation(@intCast(self.id), @ptrCast(name.ptr));
+        const loc = c.glGetUniformLocation(self.id, @ptrCast(name));
         return if (loc == -1) null else @intCast(loc);
     }
 
@@ -1314,16 +1332,16 @@ pub const ShaderProgram = struct {
 };
 
 pub const Texture = struct {
-    id: u32,
+    id: c.GLuint,
 
     pub fn gen() Texture {
-        var id: u32 = 0;
-        c.glGenTextures(1, @ptrCast(&id));
+        var id: c.GLuint = 0;
+        c.glGenTextures(1, &id);
         return .{ .id = id };
     }
     pub fn genSlice(size: usize, allocator: Allocator) Allocator.Error![]Texture {
         const arr = try allocator.alloc(TextureType, size);
-        c.glGenTextures(@intCast(size), @ptrCast(arr.ptr));
+        c.glGenTextures(@intCast(size), @ptrCast(arr));
         return arr;
     }
     pub fn genArray(comptime N: comptime_int) Allocator.Error![N]Texture {
@@ -1333,13 +1351,13 @@ pub const Texture = struct {
     }
 
     pub fn create() Texture {
-        var id: u32 = 0;
-        c.glCreateTextures(1, @ptrCast(&id));
+        var id: c.GLuint = 0;
+        c.glCreateTextures(1, &id);
         return .{ .id = id };
     }
     pub fn createSlice(size: usize, allocator: Allocator) Allocator.Error![]Texture {
         const arr = try allocator.alloc(TextureType, size);
-        c.glCreateTextures(@intCast(size), @ptrCast(arr.ptr));
+        c.glCreateTextures(@intCast(size), @ptrCast(arr));
         return arr;
     }
     pub fn createArray(comptime N: comptime_int) [N]Texture {
@@ -1349,7 +1367,7 @@ pub const Texture = struct {
     }
 
     pub fn destroy(self: *Texture) void {
-        c.glDeleteTextures(1, @ptrCast(&self.id));
+        c.glDeleteTextures(1, &self.id);
         self.* = undefined;
     }
     pub fn destroyArray(comptime N: comptime_int, textures: *[N]Texture) void {
@@ -1357,13 +1375,13 @@ pub const Texture = struct {
         @memset(textures, undefined);
     }
     pub fn destroySlice(allocator: Allocator, textures: *[]Texture) void {
-        c.glDeleteTextures(@intCast(textures.len), @ptrCast(textures.ptr));
+        c.glDeleteTextures(@intCast(textures.len), @ptrCast(textures));
         allocator.free(textures.*);
         textures.* = undefined;
     }
 
     pub fn bind(self: Texture, @"type": TextureType) void {
-        c.glBindTexture(@bitCast(@intFromEnum(@"type")), @intCast(self.id));
+        c.glBindTexture(@bitCast(@intFromEnum(@"type")), self.id);
     }
 
     pub fn unbindAny(@"type": TextureType) void {
@@ -1405,27 +1423,27 @@ pub const Texture = struct {
         switch (T) {
             inline DepthStencilTextureMode => {
                 try checkParams(param, &.{.DepthStencilMode});
-                c.glTextureParameteri(@intCast(self.id), @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
+                c.glTextureParameteri(self.id, @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
             },
             inline CompareFunction => {
                 try checkParams(param, &.{.CompareFunc});
-                c.glTextureParameteri(@intCast(self.id), @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
+                c.glTextureParameteri(self.id, @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
             },
             inline CompareMode => {
                 try checkParams(param, &.{.CompareMode});
-                c.glTextureParameteri(@intCast(self.id), @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
+                c.glTextureParameteri(self.id, @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
             },
             inline Filter => {
                 try checkParams(param, &.{ .MinFilter, .MagFilter });
-                c.glTextureParameteri(@intCast(self.id), @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
+                c.glTextureParameteri(self.id, @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
             },
             inline Swizzle => {
                 try checkParams(param, &.{ .SwizzleR, .SwizzleG, .SwizzleB, .SwizzleA });
-                c.glTextureParameteri(@intCast(self.id), @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
+                c.glTextureParameteri(self.id, @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
             },
             inline WrapMode => {
                 try checkParams(param, &.{ .WrapS, .WrapT });
-                c.glTextureParameteri(@intCast(self.id), @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
+                c.glTextureParameteri(self.id, @bitCast(@intFromEnum(param)), @bitCast(@intFromEnum(value)));
             },
             inline else => {
                 switch (value) {
@@ -1457,9 +1475,9 @@ pub const Texture = struct {
                 switch (bits) {
                     inline 32 => {
                         if (signedness == .signed)
-                            c.glTextureParameteri(@intCast(self.id), @bitCast(@intFromEnum(param)), value)
+                            c.glTextureParameteri(self.id, @bitCast(@intFromEnum(param)), value)
                         else
-                            c.glTextureParameterIuiv(@intCast(self.id), @bitCast(@intFromEnum(param)), @ptrCast(&value));
+                            c.glTextureParameterIuiv(self.id, @bitCast(@intFromEnum(param)), @ptrCast(&value));
                     },
                     inline else => @compileError(std.fmt.comptimePrint("invalid int bit length, got: {d} expected 32", .{bits})),
                 }
@@ -1485,7 +1503,7 @@ pub const Texture = struct {
 
                 switch (bits) {
                     inline 32 => {
-                        c.glTextureParameterf(@intCast(self.id), @bitCast(@intFromEnum(param)), value);
+                        c.glTextureParameterf(self.id, @bitCast(@intFromEnum(param)), value);
                     },
                     inline else => @compileError(std.fmt.comptimePrint("invalid float bit length, got: {d} expected 32", .{bits})),
                 }
@@ -1638,20 +1656,20 @@ pub const Texture = struct {
     pub fn textureStorage(self: Texture, comptime dim: u2, levels: u32, format: TextureFormat, width: u32, height: u32, depth: u32) void {
         switch (dim) {
             inline 1 => c.glTextureStorage1D(
-                @intCast(self.id),
+                self.id,
                 @intCast(levels),
                 @bitCast(@intFromEnum(format)),
                 @intCast(width),
             ),
             inline 2 => c.glTextureStorage2D(
-                @intCast(self.id),
+                self.id,
                 @intCast(levels),
                 @bitCast(@intFromEnum(format)),
                 @intCast(width),
                 @intCast(height),
             ),
             inline 3 => c.glTextureStorage3D(
-                @intCast(self.id),
+                self.id,
                 @intCast(levels),
                 @bitCast(@intFromEnum(format)),
                 @intCast(width),
@@ -1739,7 +1757,7 @@ pub const Texture = struct {
     pub fn bindImageTexture(self: Texture, unit: u32, level: u32, layered: bool, layer: u32, access: TextureAccess, format: TextureFormat) void {
         c.glBindImageTexture(
             @intCast(unit),
-            @intCast(self.id),
+            self.id,
             @intCast(level),
             @intFromBool(layered),
             @intCast(layer),
@@ -1748,24 +1766,24 @@ pub const Texture = struct {
         );
     }
     pub fn bindUnit(self: Texture, unit: u32) void {
-        c.glBindTextureUnit(@intCast(unit), @intCast(self.id));
+        c.glBindTextureUnit(@intCast(unit), self.id);
     }
 };
 
 pub const TextureHandle = struct {
-    id: u64,
+    id: c.GLuint64,
 
     pub fn init(tex: Texture) TextureHandle {
         return .{
-            .id = @intCast(c.glGetTextureHandleARB(@intCast(tex.id))),
+            .id = @intCast(c.glGetTextureHandleARB(tex.id)),
         };
     }
 
     pub fn makeResident(self: TextureHandle) void {
-        c.glMakeTextureHandleResidentARB(@intCast(self.id));
+        c.glMakeTextureHandleResidentARB(self.id);
     }
     pub fn makeNonResident(self: TextureHandle) void {
-        c.glMakeTextureHandleNonResidentARB(@intCast(self.id));
+        c.glMakeTextureHandleNonResidentARB(self.id);
     }
 };
 
@@ -1785,6 +1803,7 @@ inline fn checkSize(comptime T: type, comptime bitSize: comptime_int) void {
 }
 
 comptime {
+    std.testing.refAllDeclsRecursive(@This());
     checkSize(VertexArray, 32);
     checkSize(Buffer, 32);
     checkSize(Shader, 32);

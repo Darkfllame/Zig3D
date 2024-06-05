@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const c = @cImport({
     @cDefine("__gl_h_", "");
     @cInclude("GLFW/glfw3.h");
@@ -14,6 +15,10 @@ var pollErr: ?anyerror = null;
 var currentInitAllocator: ?Allocator = null;
 var globalAllocator: Allocator = std.heap.c_allocator;
 
+inline fn u32tocint(x: u32) c_int {
+    return @truncate(@as(i32, @bitCast(x)));
+}
+
 inline fn windowHint(hint: WindowHint) void {
     const wHint = c.glfwWindowHint;
     const wHintS = c.glfwWindowHintString;
@@ -22,42 +27,42 @@ inline fn windowHint(hint: WindowHint) void {
     wHint(c.GLFW_DECORATED, @intFromBool(hint.decorated));
     wHint(c.GLFW_FOCUSED, @intFromBool(hint.focused));
     wHint(c.GLFW_AUTO_ICONIFY, @intFromBool(hint.autoIconify));
-    wHint(c.GLFW_FLOATING, @intFromBool(hint.floating));
-    wHint(c.GLFW_MAXIMIZED, @intFromBool(hint.maximized));
+    if (hint.windowMode != .auto)
+        wHint(u32tocint(@intFromEnum(hint.windowMode)), @intFromBool(true));
     wHint(c.GLFW_CENTER_CURSOR, @intFromBool(hint.centerCursor));
     wHint(c.GLFW_TRANSPARENT_FRAMEBUFFER, @intFromBool(hint.transparentFramebuffer));
     wHint(c.GLFW_FOCUS_ON_SHOW, @intFromBool(hint.focusOnShow));
     wHint(c.GLFW_SCALE_TO_MONITOR, @intFromBool(hint.scaleToMonitor));
-    wHint(c.GLFW_RED_BITS, @bitCast(hint.redBits));
-    wHint(c.GLFW_GREEN_BITS, @bitCast(hint.greenBits));
-    wHint(c.GLFW_BLUE_BITS, @bitCast(hint.blueBits));
-    wHint(c.GLFW_ALPHA_BITS, @bitCast(hint.alphaBits));
-    wHint(c.GLFW_DEPTH_BITS, @bitCast(hint.depthBits));
-    wHint(c.GLFW_STENCIL_BITS, @bitCast(hint.stencilBits));
-    wHint(c.GLFW_ACCUM_RED_BITS, @bitCast(hint.accumRedBits));
-    wHint(c.GLFW_ACCUM_GREEN_BITS, @bitCast(hint.accumGreenBits));
-    wHint(c.GLFW_ACCUM_BLUE_BITS, @bitCast(hint.accumBlueBits));
-    wHint(c.GLFW_ACCUM_ALPHA_BITS, @bitCast(hint.accumAphaBits));
-    wHint(c.GLFW_AUX_BUFFERS, @bitCast(hint.auxBuffers));
-    wHint(c.GLFW_SAMPLES, @bitCast(hint.samples));
-    wHint(c.GLFW_REFRESH_RATE, @bitCast(hint.refreshRate));
+    wHint(c.GLFW_RED_BITS, u32tocint(hint.redBits));
+    wHint(c.GLFW_GREEN_BITS, u32tocint(hint.greenBits));
+    wHint(c.GLFW_BLUE_BITS, u32tocint(hint.blueBits));
+    wHint(c.GLFW_ALPHA_BITS, u32tocint(hint.alphaBits));
+    wHint(c.GLFW_DEPTH_BITS, u32tocint(hint.depthBits));
+    wHint(c.GLFW_STENCIL_BITS, u32tocint(hint.stencilBits));
+    wHint(c.GLFW_ACCUM_RED_BITS, u32tocint(hint.accumRedBits));
+    wHint(c.GLFW_ACCUM_GREEN_BITS, u32tocint(hint.accumGreenBits));
+    wHint(c.GLFW_ACCUM_BLUE_BITS, u32tocint(hint.accumBlueBits));
+    wHint(c.GLFW_ACCUM_ALPHA_BITS, u32tocint(hint.accumAphaBits));
+    wHint(c.GLFW_AUX_BUFFERS, u32tocint(hint.auxBuffers));
+    wHint(c.GLFW_SAMPLES, u32tocint(hint.samples));
+    wHint(c.GLFW_REFRESH_RATE, u32tocint(hint.refreshRate));
     wHint(c.GLFW_STEREO, @intFromBool(hint.stereo));
     wHint(c.GLFW_SRGB_CAPABLE, @intFromBool(hint.srgbCapable));
     wHint(c.GLFW_DOUBLEBUFFER, @intFromBool(hint.doubleBuffer));
-    wHint(c.GLFW_CLIENT_API, @bitCast(@intFromEnum(hint.clientApi)));
-    wHint(c.GLFW_CONTEXT_CREATION_API, @bitCast(@intFromEnum(hint.creationApi)));
+    wHint(c.GLFW_CLIENT_API, u32tocint(@intFromEnum(hint.clientApi)));
+    wHint(c.GLFW_CONTEXT_CREATION_API, u32tocint(@intFromEnum(hint.creationApi)));
     wHint(c.GLFW_CONTEXT_VERSION_MAJOR, @intCast(hint.version.major));
     wHint(c.GLFW_CONTEXT_VERSION_MINOR, @intCast(hint.version.minor));
-    wHint(c.GLFW_CONTEXT_ROBUSTNESS, @bitCast(@intFromEnum(hint.robustness)));
-    wHint(c.GLFW_CONTEXT_RELEASE_BEHAVIOR, @bitCast(@intFromEnum(hint.releaseBehaviour)));
+    wHint(c.GLFW_CONTEXT_ROBUSTNESS, u32tocint(@intFromEnum(hint.robustness)));
+    wHint(c.GLFW_CONTEXT_RELEASE_BEHAVIOR, u32tocint(@intFromEnum(hint.releaseBehaviour)));
     wHint(c.GLFW_OPENGL_FORWARD_COMPAT, @intFromBool(hint.forwardCompat));
     wHint(c.GLFW_OPENGL_DEBUG_CONTEXT, @intFromBool(hint.debug));
-    wHint(c.GLFW_OPENGL_PROFILE, @bitCast(@intFromEnum(hint.openglProfile)));
+    wHint(c.GLFW_OPENGL_PROFILE, u32tocint(@intFromEnum(hint.openglProfile)));
     wHint(c.GLFW_COCOA_RETINA_FRAMEBUFFER, @intFromBool(hint.cocoaRetinaFramebuffer));
-    wHintS(c.GLFW_COCOA_FRAME_NAME, hint.cocoaFrameName.ptr);
+    wHintS(c.GLFW_COCOA_FRAME_NAME, @ptrCast(hint.cocoaFrameName));
     wHint(c.GLFW_COCOA_GRAPHICS_SWITCHING, @intFromBool(hint.cocoaGraphicsSwitching));
-    wHintS(c.GLFW_X11_CLASS_NAME, hint.x11ClassName.ptr);
-    wHintS(c.GLFW_X11_INSTANCE_NAME, hint.x11InstanceName.ptr);
+    wHintS(c.GLFW_X11_CLASS_NAME, @ptrCast(hint.x11ClassName));
+    wHintS(c.GLFW_X11_INSTANCE_NAME, @ptrCast(hint.x11InstanceName));
 }
 
 inline fn inputModeValue2Glfw(mode: InputMode) c_int {
@@ -97,24 +102,24 @@ fn getError(description: ?*[]const u8) Error {
 
 fn allocFn(size: usize, user: ?*anyopaque) callconv(.C) ?*anyopaque {
     const allocator: *const Allocator = @ptrCast(@alignCast(user));
-    const base: *anyopaque = @ptrCast(@alignCast(allocator.alloc(u8, 8 + size) catch return null));
+    const base: *anyopaque = @ptrCast(@alignCast(allocator.alloc(u8, @sizeOf(usize) + size) catch return null));
     const usizePtr: *usize = @ptrCast(@alignCast(base));
     usizePtr.* = size;
-    return @ptrFromInt(@intFromPtr(base) + 8);
+    return @ptrFromInt(@intFromPtr(base) + @sizeOf(usize));
 }
 fn reallocFn(block: ?*anyopaque, nsize: usize, user: ?*anyopaque) callconv(.C) ?*anyopaque {
     const allocator: *const Allocator = @ptrCast(@alignCast(user));
-    const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - 8);
+    const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - @sizeOf(usize));
     const size = @as(*usize, @ptrCast(@alignCast(manyPtr))).*;
-    const op: *anyopaque = @ptrCast(@alignCast(allocator.realloc(manyPtr[0 .. size + 8], if (nsize == 0) 0 else 8 + nsize) catch return null));
+    const op: *anyopaque = @ptrCast(@alignCast(allocator.realloc(manyPtr[0 .. size + @sizeOf(usize)], if (nsize == 0) 0 else @sizeOf(usize) + nsize) catch return null));
     @as(*usize, @ptrCast(@alignCast(op))).* = nsize;
-    return @ptrFromInt(@intFromPtr(op) + 8);
+    return @ptrFromInt(@intFromPtr(op) + @sizeOf(usize));
 }
 fn deallocFn(block: ?*anyopaque, user: ?*anyopaque) callconv(.C) void {
     const allocator: *const Allocator = @ptrCast(@alignCast(user));
-    const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - 8);
+    const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - @sizeOf(usize));
     const size = @as(*usize, @ptrCast(@alignCast(manyPtr))).*;
-    allocator.free(manyPtr[0 .. size + 8]);
+    allocator.free(manyPtr[0 .. size + @sizeOf(usize)]);
 }
 
 pub const DontCare: u32 = @truncate(-1);
@@ -326,6 +331,12 @@ pub const OpenglProfile = enum(u32) {
     Core = @intCast(c.GLFW_OPENGL_CORE_PROFILE),
 };
 
+pub const WindowMode = enum(u32) {
+    auto = 0,
+    floating = @intCast(c.GLFW_FLOATING),
+    maximized = @intCast(c.GLFW_MAXIMIZED),
+};
+
 pub const WindowHint = struct {
     vsync: bool = false,
     resizable: bool = true,
@@ -333,8 +344,7 @@ pub const WindowHint = struct {
     decorated: bool = true,
     focused: bool = true,
     autoIconify: bool = true,
-    floating: bool = false,
-    maximized: bool = false,
+    windowMode: WindowMode = .auto,
     centerCursor: bool = true,
     transparentFramebuffer: bool = false,
     focusOnShow: bool = true,
@@ -361,7 +371,7 @@ pub const WindowHint = struct {
     robustness: Robustness = .NoRobustness,
     releaseBehaviour: ReleaseBehaviour = .Any,
     forwardCompat: bool = false,
-    debug: bool = false,
+    debug: bool = builtin.mode == .Debug,
     openglProfile: OpenglProfile = .Any,
     cocoaRetinaFramebuffer: bool = true,
     cocoaFrameName: [:0]const u8 = "",
@@ -880,7 +890,7 @@ pub fn initAllocator(allocator: ?*const Allocator) void {
             }
     else
         null);
-    currentInitAllocator = if (allocator) |_| allocator.? else null;
+    currentInitAllocator = if (allocator) |alloc| alloc.* else null;
 }
 
 pub fn init(errStr: ?*[]const u8) Error!void {
@@ -973,4 +983,8 @@ pub fn getKeyName(key: Key) []const u8 {
 /// If no allocator was given before then it returns std.heap.c_allocator
 pub fn getCurrentAllocator() Allocator {
     return globalAllocator;
+}
+
+comptime {
+    std.testing.refAllDeclsRecursive(@This());
 }

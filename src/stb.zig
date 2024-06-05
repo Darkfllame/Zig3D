@@ -100,3 +100,7 @@ pub const Image = struct {
         };
     }
 };
+
+comptime {
+    std.testing.refAllDeclsRecursive(@This());
+}
