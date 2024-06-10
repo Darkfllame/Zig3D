@@ -4,16 +4,16 @@
 
     .dependencies = .{
         .glfw = .{
-            .url = "https://github.com/Darkfllame/glfw/archive/7fb02ae9ec336b9131dd7a64f34b38a84b72b7b7.tar.gz",
-            .hash = "1220cd32cbb6cd2645b9831e29061bd6457bf603d58408a7f642708011f12f5a2569",
+            .url = "https://github.com/Darkfllame/glfw/archive/a271d291fc7dea0e57befd941bd37829bfafd8a1.tar.gz",
+            .hash = "12206a6892c18aea0d8e174af07cf523251e6f30c3834e64ab3d95875c1f683c90c3",
         },
         .freetype = .{
-            .url = "https://github.com/Darkfllame/freetype/archive/237244f70e273f937db59e3c1f2fbb18de4b6b6a.tar.gz",
-            .hash = "12200c96270497d9d2fc8a120cf5c4f426a762475a555b3429d7769f426efa4b729b",
+            .url = "https://github.com/Darkfllame/freetype/archive/be03df0d15b7f934d6f6ce22b5570d5fcd38d7ef.tar.gz",
+            .hash = "1220a650d7a8f2c3f5d626e5fd1bb903f318e9b32848d1a3cf4f9bd27af2f48af892",
         },
         .zlm = .{
-            .url = "https://github.com/ziglibs/zlm/archive/master.tar.gz",
-            .hash = "12205dbec9f917a3ab61ca65900dce7a04c9ec4348d0e2241a9c246b9c2d131d061b",
+            .url = "https://github.com/Darkfllame/zlm/archive/aafbda476010d49581f7bb85bf04551d461d672b.tar.gz",
+            .hash = "1220dc00d7589c727b2f7c11cd68fdf855104900bb0de6ee739cc6182b6aab044be1",
         },
     },
 

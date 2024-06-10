@@ -164,10 +164,7 @@ pub fn main() !void {
         vao.bind();
 
         buffers[0].bind(.Array);
-        try buffers[0].data(f32, triangleVertices, .StaticDraw);
-
-        buffers[1].bind(.ElementArray);
-        try buffers[1].data(u32, triangleIndices, .StaticDraw);
+        try glad.Buffer.dataTarget(.Array, f32, triangleVertices, .StaticDraw);
 
         glad.VertexArray.vertexAttrib(0, 3, f32, false, 8 * @sizeOf(f32), 0);
         glad.VertexArray.vertexAttrib(1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
@@ -176,9 +173,12 @@ pub fn main() !void {
         vao.enableAttrib(1);
         vao.enableAttrib(2);
 
-        glad.Buffer.unbindAny(.ElementArray);
         glad.Buffer.unbindAny(.Array);
+
+        buffers[1].bind(.ElementArray);
+        try glad.Buffer.dataTarget(.ElementArray, u32, triangleIndices, .StaticDraw);
         glad.VertexArray.unbindAny();
+        glad.Buffer.unbindAny(.ElementArray);
     }
 
     stb.setFlipVerticallyOnLoad(true);
@@ -242,7 +242,7 @@ pub fn main() !void {
         program.useProgram();
         try program.setUniform("tex", textureHandle);
         vao.bind();
-        try glad.drawElements(.Triangles, 6, u32, 0);
+        try glad.drawElements(.Triangles, triangleIndices.len, u32, 0);
         glad.VertexArray.unbindAny();
         glad.ShaderProgram.unuseAny();
         window.swapBuffers();

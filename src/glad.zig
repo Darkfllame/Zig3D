@@ -426,10 +426,15 @@ pub const StringName = enum(c.GLenum) {
 pub const GladLoadProc = *const fn ([*c]const u8) callconv(.C) ?*anyopaque;
 pub const DebugProc = *const fn (source: DebugSource, kind: DebugType, errId: Error, severity: DebugSeverity, message: []const u8, userData: ?*anyopaque) void;
 
-pub const ClearBits = struct {
+pub const ClearBits = packed struct {
+    _padding0: u8 = 0,
     depth: bool = false,
+    _padding1: u1 = 0,
+    stencil: bool = false,
+    _padding2: u3 = 0,
     color: bool = false,
-    accum: bool = false,
+    /// Pad to 32 bits
+    _padding3: u17 = 0,
 };
 
 pub const DrawElementsIndirectCommand = struct {
@@ -497,7 +502,7 @@ pub fn getExtensions(extensions: ?[]const []const u8) usize {
 
 /// You can do try glad.checkError() to check for any
 /// OpenGL errors
-pub fn checkError() Error!void {
+pub inline fn checkError() Error!void {
     return switch (errFromC(c.glGetError())) {
         Error.NoError => {},
         else => |e| e,
@@ -587,11 +592,7 @@ pub fn clearColor(red: f32, green: f32, blue: f32, alpha: f32) void {
 }
 
 pub fn clear(mask: ClearBits) void {
-    c.glClear(
-        @as(c_uint, if (mask.depth) c.GL_DEPTH_BUFFER_BIT else 0) |
-            @as(c_uint, if (mask.color) c.GL_COLOR_BUFFER_BIT else 0) |
-            @as(c_uint, if (mask.accum) c.GL_ACCUM_BUFFER_BIT else 0),
-    );
+    c.glClear(@bitCast(mask));
 }
 
 pub fn clearRGBA(color: FColor, mask: ClearBits) void {
@@ -1793,7 +1794,7 @@ pub const TextureHandle = struct {
 inline fn checkSize(comptime T: type, comptime bitSize: comptime_int) void {
     if (@bitSizeOf(T) != bitSize)
         @compileError(std.fmt.comptimePrint(
-            "{s} is not {d} bits wide but {d}.",
+            "Expected {s} to be {d} bits wide, but is {d} wide.",
             .{
                 @typeName(T),
                 bitSize,
@@ -1804,6 +1805,9 @@ inline fn checkSize(comptime T: type, comptime bitSize: comptime_int) void {
 
 comptime {
     std.testing.refAllDeclsRecursive(@This());
+    checkSize(c_int, 32);
+    checkSize(c_longlong, 64);
+    checkSize(ClearBits, 32);
     checkSize(VertexArray, 32);
     checkSize(Buffer, 32);
     checkSize(Shader, 32);

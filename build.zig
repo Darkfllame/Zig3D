@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
     const options = b.addOptions();
 
     const exposeC = b.option(bool, "exposeC", "Whether to expose the underlaying c API of the wrappers (default: false)") orelse false;
-    const shared = b.option(bool, "shared", "Zhether to dynamically link GLFW, GLAD and stb (default: false)") orelse false;
+    const shared = b.option(bool, "shared", "Whether to dynamically link GLFW, GLAD and stb (default: false)") orelse false;
     const buildAllDemos = b.option(bool, "buildAll", "Whether to force building all the demos (default: false)") orelse false;
 
     options.addOption(bool, "exposeC", exposeC);
@@ -173,17 +173,13 @@ fn makeDemo(b: *std.Build, utils: *std.Build.Module, forceInstall: bool, comptim
     demo.root_module.addImport("zig3d", b.modules.get("zig3d").?);
     demo.root_module.addImport("utils", utils);
 
-    const install = b.addInstallArtifact(demo, .{});
     if (forceInstall) {
-        b.getInstallStep().dependOn(&install.step);
+        b.getInstallStep().dependOn(&demo.step);
     }
 
     const demo_run = b.addRunArtifact(demo);
-    demo_run.step.dependOn(&install.step);
-
-    if (b.args) |args| {
-        demo_run.addArgs(args);
-    }
+    demo_run.step.dependOn(&demo.step);
+    demo_run.addArgs(b.args orelse &.{});
 
     const run_step = b.step(name, desc);
     run_step.dependOn(&demo_run.step);
