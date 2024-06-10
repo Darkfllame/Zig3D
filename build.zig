@@ -161,6 +161,23 @@ pub fn build(b: *std.Build) void {
     makeDemo(b, utils, buildAllDemos, "quad", "Run the demo quad app", optimize, target);
     makeDemo(b, utils, buildAllDemos, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
     makeDemo(b, utils, buildAllDemos, "instancing", "Run the instancing demo app", optimize, target);
+
+    { // autodoc
+        const docgen = b.addObject(.{
+            .name = "zig3d",
+            .root_source_file = b.path("src/lib.zig"),
+            .target = target,
+            .optimize = .Debug,
+        });
+        const installDocs = b.addInstallDirectory(.{
+            .source_dir = docgen.getEmittedDocs(),
+            .install_dir = .prefix,
+            .install_subdir = "docs/",
+        });
+
+        const docgenStep = b.step("gen-docs", "Generate Zig3D's documentation (currently kinda useless)");
+        docgenStep.dependOn(&installDocs.step);
+    }
 }
 
 fn makeDemo(b: *std.Build, utils: *std.Build.Module, forceInstall: bool, comptime name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {

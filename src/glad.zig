@@ -482,8 +482,8 @@ var messageAllocator: ?Allocator = null;
 var errMessage: ?[]const u8 = null;
 
 pub inline fn hasExtension(comptime ext: Extension) bool {
-    return @hasDecl(c, "GLAD_" ++ @tagName(ext)) and
-        @field(c, "GLAD_" ++ @tagName(ext)) != 0;
+    return @hasDecl(c, "GLAD_GL" ++ @tagName(ext)) and
+        @field(c, "GLAD_GL" ++ @tagName(ext)) != 0;
 }
 
 /// **Return**: How many extensions there is.

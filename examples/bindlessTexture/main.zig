@@ -103,7 +103,7 @@ pub fn main() !void {
     };
     try utils.println("Using OpenGL version: {d}.{d}", glVersion);
 
-    if (!glad.hasExtension(.GL_ARB_bindless_texture)) {
+    if (!glad.hasExtension(.ARB_bindless_texture)) {
         return utils.println("[ERROR] Cannot find bindless texture on your hardware, can't do nothing about it sorry", .{});
     }
 
