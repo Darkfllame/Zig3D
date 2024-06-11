@@ -100,23 +100,23 @@ fn getError(description: ?*[]const u8) Error {
     return err;
 }
 
-fn allocFn(size: usize, _: ?*anyopaque) callconv(.C) ?*anyopaque {
-    const allocator = globalAllocator;
+fn allocFn(size: usize, user: ?*anyopaque) callconv(.C) ?*anyopaque {
+    const allocator: *const Allocator = @ptrCast(@alignCast(user));
     const base: *anyopaque = @ptrCast(@alignCast(allocator.alloc(u8, @sizeOf(usize) + size) catch return null));
     const usizePtr: *usize = @ptrCast(@alignCast(base));
     usizePtr.* = size;
     return @ptrFromInt(@intFromPtr(base) + @sizeOf(usize));
 }
-fn reallocFn(block: ?*anyopaque, nsize: usize, _: ?*anyopaque) callconv(.C) ?*anyopaque {
-    const allocator = globalAllocator;
+fn reallocFn(block: ?*anyopaque, nsize: usize, user: ?*anyopaque) callconv(.C) ?*anyopaque {
+    const allocator: *const Allocator = @ptrCast(@alignCast(user));
     const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - @sizeOf(usize));
     const size = @as(*usize, @ptrCast(@alignCast(manyPtr))).*;
     const op: *anyopaque = @ptrCast(@alignCast(allocator.realloc(manyPtr[0 .. size + @sizeOf(usize)], if (nsize == 0) 0 else @sizeOf(usize) + nsize) catch return null));
     @as(*usize, @ptrCast(@alignCast(op))).* = nsize;
     return @ptrFromInt(@intFromPtr(op) + @sizeOf(usize));
 }
-fn deallocFn(block: ?*anyopaque, _: ?*anyopaque) callconv(.C) void {
-    const allocator = globalAllocator;
+fn deallocFn(block: ?*anyopaque, user: ?*anyopaque) callconv(.C) void {
+    const allocator: *const Allocator = @ptrCast(@alignCast(user));
     const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - @sizeOf(usize));
     const size = @as(*usize, @ptrCast(@alignCast(manyPtr))).*;
     allocator.free(manyPtr[0 .. size + @sizeOf(usize)]);
@@ -405,7 +405,7 @@ pub const Window = opaque {
     var current: ?*Window = null;
 
     inline fn toIntern(self: *Window) *WindowInternal {
-        return @ptrCast(@alignCast(c.glfwGetWindowUserPointer(@ptrCast(@alignCast(self)))));
+        return @ptrCast(@alignCast(c.glfwGetWindowUserPointer(@ptrCast(self))));
     }
 
     fn mouseCallback(window: ?*c.GLFWwindow, x: f64, y: f64) callconv(.C) void {
@@ -524,6 +524,8 @@ pub const Window = opaque {
         return @ptrCast(@alignCast(ptr));
     }
     pub fn destroy(self: *Window) void {
+        if (@as(?*Window, self) == null) return;
+
         const win = self.toIntern();
 
         const allocator = getCurrentAllocator();
@@ -531,15 +533,15 @@ pub const Window = opaque {
         allocator.free(win.title);
         allocator.destroy(win);
 
-        c.glfwDestroyWindow(@ptrCast(@alignCast(self)));
+        c.glfwDestroyWindow(@ptrCast(self));
     }
 
     pub fn getMonitor(self: *Window) *Monitor {
-        return @ptrCast(@alignCast(c.glfwGetWindowMonitor(@ptrCast(@alignCast(self)))));
+        return @ptrCast(@alignCast(c.glfwGetWindowMonitor(@ptrCast(self))));
     }
     pub fn setMonitor(self: *Monitor, monitor: *Monitor, x: u32, y: u32, w: u32, h: u32, refreshRate: u32) void {
         c.glfwSetWindowMonitor(
-            @ptrCast(@alignCast(self)),
+            @ptrCast(self),
             @ptrCast(@alignCast(monitor)),
             @intCast(x),
             @intCast(y),
@@ -552,7 +554,7 @@ pub const Window = opaque {
     pub fn makeCurrentContext(self: *Window) void {
         if (self == current)
             return;
-        c.glfwMakeContextCurrent(@ptrCast(@alignCast(self)));
+        c.glfwMakeContextCurrent(@ptrCast(self));
         current = self;
     }
     pub fn isCurrentContext(self: *Window) bool {
@@ -565,46 +567,46 @@ pub const Window = opaque {
     pub fn setVSync(self: *Window, vsync: bool) void {
         const win = self.toIntern();
         win.hint.vsync = vsync;
-        if (self != current) c.glfwMakeContextCurrent(@ptrCast(@alignCast(self)));
+        if (self != current) c.glfwMakeContextCurrent(@ptrCast(self));
         c.glfwSwapInterval(@intFromBool(vsync));
         if (self != current)
-            if (current) |curr| c.glfwMakeContextCurrent(toIntern(curr).ptr);
+            if (current) |curr| c.glfwMakeContextCurrent(@ptrCast(curr));
     }
 
     pub fn swapBuffers(self: *Window) void {
-        c.glfwSwapBuffers(@ptrCast(@alignCast(self)));
+        c.glfwSwapBuffers(@ptrCast(self));
     }
 
     pub fn shouldClose(self: *Window) bool {
-        return c.glfwWindowShouldClose(@ptrCast(@alignCast(self))) == c.GLFW_TRUE;
+        return c.glfwWindowShouldClose(@ptrCast(self)) == c.GLFW_TRUE;
     }
     pub fn setShouldClose(self: *Window, value: bool) void {
-        c.glfwSetWindowShouldClose(@ptrCast(@alignCast(self)), @intFromBool(value));
+        c.glfwSetWindowShouldClose(@ptrCast(self), @intFromBool(value));
     }
 
     pub fn show(self: *Window) void {
         const win = self.toIntern();
-        c.glfwShowWindow(@ptrCast(@alignCast(self)));
+        c.glfwShowWindow(@ptrCast(self));
         win.hint.visible = true;
     }
     pub fn hide(self: *Window) void {
         const win = self.toIntern();
-        c.glfwHideWindow(@ptrCast(@alignCast(self)));
+        c.glfwHideWindow(@ptrCast(self));
         win.hint.visible = false;
     }
 
     pub fn getPosition(self: *Window, x: ?*u32, y: ?*u32) void {
-        c.glfwGetWindowPos(@ptrCast(@alignCast(self)), @ptrCast(x), @ptrCast(y));
+        c.glfwGetWindowPos(@ptrCast(self), @ptrCast(x), @ptrCast(y));
     }
     pub fn setPosition(self: *Window, x: u32, y: u32) void {
-        c.glfwSetWindowPos(@ptrCast(@alignCast(self)), @intCast(x), @intCast(y));
+        c.glfwSetWindowPos(@ptrCast(self), @intCast(x), @intCast(y));
     }
 
     pub fn getSize(self: *Window, w: ?*u32, h: ?*u32) void {
-        c.glfwGetWindowSize(@ptrCast(@alignCast(self)), @ptrCast(w), @ptrCast(h));
+        c.glfwGetWindowSize(@ptrCast(self), @ptrCast(w), @ptrCast(h));
     }
     pub fn setSize(self: *Window, w: u32, h: u32) void {
-        c.glfwSetWindowSize(@ptrCast(@alignCast(self)), @intCast(w), @intCast(h));
+        c.glfwSetWindowSize(@ptrCast(self), @intCast(w), @intCast(h));
     }
 
     pub fn getTitle(self: *Window) []const u8 {
@@ -619,22 +621,22 @@ pub const Window = opaque {
         const title_copy = try allocator.allocSentinel(u8, title.len, 0);
         @memcpy(title_copy, title);
 
-        c.glfwSetWindowTitle(@ptrCast(@alignCast(self)), title_copy.ptr);
+        c.glfwSetWindowTitle(@ptrCast(self), title_copy.ptr);
 
         allocator.free(win.title);
         win.title = title_copy;
     }
 
     pub fn setResizable(self: *Window, resiziable: bool) void {
-        c.glfwSetWindowAttrib(@ptrCast(@alignCast(self)), c.GLFW_RESIZABLE, @intFromBool(resiziable));
+        c.glfwSetWindowAttrib(@ptrCast(self), c.GLFW_RESIZABLE, @intFromBool(resiziable));
     }
 
     pub fn setInputMode(self: *Window, mode: InputMode) void {
-        c.glfwSetInputMode(@ptrCast(@alignCast(self)), @bitCast(@intFromEnum(std.meta.activeTag(mode))), inputModeValue2Glfw(mode));
+        c.glfwSetInputMode(@ptrCast(self), @bitCast(@intFromEnum(std.meta.activeTag(mode))), inputModeValue2Glfw(mode));
     }
     /// Will always return the active tag defined by `mode`
     pub fn getInputMode(self: *Window, mode: InputModeTag) InputMode {
-        const v = c.glfwGetInputMode(@ptrCast(@alignCast(self)), @bitCast(@intFromEnum(mode)));
+        const v = c.glfwGetInputMode(@ptrCast(self), @bitCast(@intFromEnum(mode)));
         return switch (mode) {
             .StickyKeys, .StickyMouseButtons, .LockKeyMods => |tag| @unionInit(InputMode, @tagName(tag), v == c.GLFW_TRUE),
             .Cursor => .{
@@ -643,8 +645,8 @@ pub const Window = opaque {
         };
     }
 
-    pub fn setCursor(self: *Window, cursor: Cursor) void {
-        c.glfwSetCursor(@ptrCast(@alignCast(self)), cursor.toIntern().ptr);
+    pub fn setCursor(self: *Window, cursor: *Cursor) void {
+        c.glfwSetCursor(@ptrCast(self), cursor.toIntern().ptr);
     }
     pub inline fn setIcon(self: *Window, icon: Image) void {
         self.setIcons(&icon);
@@ -663,17 +665,17 @@ pub const Window = opaque {
             };
         }
 
-        c.glfwSetWindowIcon(@ptrCast(@alignCast(self)), icons.len, imgs);
+        c.glfwSetWindowIcon(@ptrCast(self), icons.len, imgs);
     }
 
     pub fn getMousePos(self: *Window, x: ?*f64, y: ?*f64) void {
-        c.glfwGetCursorPos(@ptrCast(@alignCast(self)), @ptrCast(x), @ptrCast(y));
+        c.glfwGetCursorPos(@ptrCast(self), @ptrCast(x), @ptrCast(y));
     }
     pub fn getMouseButton(self: *Window, button: u32) Key.Action {
-        return @enumFromInt(@as(u32, @bitCast(c.glfwGetMouseButton(@ptrCast(@alignCast(self)), @intCast(button)))));
+        return @enumFromInt(@as(u32, @bitCast(c.glfwGetMouseButton(@ptrCast(self), @intCast(button)))));
     }
     pub fn getKey(self: *Window, key: Key) Key.Action {
-        return @enumFromInt(@as(u32, @bitCast(c.glfwGetKey(@ptrCast(@alignCast(self)), @bitCast(@intFromEnum(key))))));
+        return @enumFromInt(@as(u32, @bitCast(c.glfwGetKey(@ptrCast(self), @bitCast(@intFromEnum(key))))));
     }
 
     // callbacks
@@ -782,10 +784,10 @@ pub const Cursor = opaque {
             .ptr = ptr,
         };
 
-        const cursorPtr = allocator.create(CursorInternal) catch return Error.OutOfMemory;
+        const cursorPtr = try allocator.create(CursorInternal);
         errdefer allocator.destroy(cursorPtr);
 
-        cursorPtr = cur;
+        cursorPtr.* = cur;
 
         return cursorPtr.toExtern();
     }
@@ -804,7 +806,7 @@ pub const Cursor = opaque {
             .ptr = ptr,
         };
 
-        const cursorPtr = allocator.create(CursorInternal) catch return Error.OutOfMemory;
+        const cursorPtr = try allocator.create(CursorInternal);
         errdefer allocator.destroy(cursorPtr);
 
         cursorPtr = cursor;
@@ -824,7 +826,7 @@ const CursorInternal = struct {
     allocator: Allocator,
     ptr: *c.GLFWcursor,
 
-    pub inline fn toExtern(self: *CursorInternal) *Cursor {
+    inline fn toExtern(self: *CursorInternal) *Cursor {
         return @ptrCast(@alignCast(self));
     }
 };
@@ -861,19 +863,19 @@ pub const Monitor = opaque {
     }
 
     pub fn getContentScale(self: *Monitor, w: ?*f32, h: ?*f32) void {
-        c.glfwGetMonitorContentScale(@ptrCast(@alignCast(self)), w, h);
+        c.glfwGetMonitorContentScale(@ptrCast(self), w, h);
     }
     pub fn getName(self: *Monitor) []const u8 {
-        return std.mem.span(c.glfwGetMonitorName(@ptrCast(@alignCast(self))));
+        return std.mem.span(c.glfwGetMonitorName(@ptrCast(self)));
     }
     pub fn getPhysicalSize(self: *Monitor, w: ?*u32, h: u32) void {
-        c.glfwGetMonitorPhysicalSize(@ptrCast(@alignCast(self)), @ptrCast(w), @ptrCast(h));
+        c.glfwGetMonitorPhysicalSize(@ptrCast(self), @ptrCast(w), @ptrCast(h));
     }
     pub fn getPos(self: *Monitor, x: ?*u32, y: ?*u32) void {
-        c.glfwGetMonitorPos(@ptrCast(@alignCast(self)), @ptrCast(x), @ptrCast(y));
+        c.glfwGetMonitorPos(@ptrCast(self), @ptrCast(x), @ptrCast(y));
     }
     pub fn getWorkArea(self: *Monitor, x: ?*u32, y: ?*u32, w: ?*u32, h: ?*u32) void {
-        c.glfwGetMonitorWorkarea(@ptrCast(@alignCast(self)), @ptrCast(x), @ptrCast(y), @ptrCast(w), @ptrCast(h));
+        c.glfwGetMonitorWorkarea(@ptrCast(self), @ptrCast(x), @ptrCast(y), @ptrCast(w), @ptrCast(h));
     }
 };
 
@@ -886,7 +888,7 @@ pub fn initAllocator(allocator: ?*const Allocator) void {
                 .allocate = &allocFn,
                 .reallocate = &reallocFn,
                 .deallocate = &deallocFn,
-                .user = null,
+                .user = @ptrCast(&globalAllocator),
             }
     else
         null);
@@ -894,11 +896,12 @@ pub fn initAllocator(allocator: ?*const Allocator) void {
 }
 
 pub fn init(errStr: ?*[]const u8) Error!void {
+    globalAllocator = currentInitAllocator orelse std.heap.c_allocator;
     const status = c.glfwInit();
     if (status != c.GLFW_TRUE) {
+        globalAllocator = std.heap.c_allocator;
         return getError(errStr);
     }
-    globalAllocator = currentInitAllocator orelse std.heap.c_allocator;
     currentInitAllocator = null;
 }
 
