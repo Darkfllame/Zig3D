@@ -11,11 +11,7 @@ const c = @cImport({
 
 pub usingnamespace if (@import("build_options").exposeC) struct {
     pub const capi = c;
-} else struct {
-    comptime {
-        @compileError("must set exposeC build argument to use freetype");
-    }
-};
+} else struct {};
 
 pub const Error = error{
     Ok,
