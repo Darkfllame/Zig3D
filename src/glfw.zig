@@ -100,23 +100,23 @@ fn getError(description: ?*[]const u8) Error {
     return err;
 }
 
-fn allocFn(size: usize, user: ?*anyopaque) callconv(.C) ?*anyopaque {
-    const allocator: *const Allocator = @ptrCast(@alignCast(user));
+fn allocFn(size: usize, _: ?*anyopaque) callconv(.C) ?*anyopaque {
+    const allocator = globalAllocator;
     const base: *anyopaque = @ptrCast(@alignCast(allocator.alloc(u8, @sizeOf(usize) + size) catch return null));
     const usizePtr: *usize = @ptrCast(@alignCast(base));
     usizePtr.* = size;
     return @ptrFromInt(@intFromPtr(base) + @sizeOf(usize));
 }
-fn reallocFn(block: ?*anyopaque, nsize: usize, user: ?*anyopaque) callconv(.C) ?*anyopaque {
-    const allocator: *const Allocator = @ptrCast(@alignCast(user));
+fn reallocFn(block: ?*anyopaque, nsize: usize, _: ?*anyopaque) callconv(.C) ?*anyopaque {
+    const allocator = globalAllocator;
     const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - @sizeOf(usize));
     const size = @as(*usize, @ptrCast(@alignCast(manyPtr))).*;
     const op: *anyopaque = @ptrCast(@alignCast(allocator.realloc(manyPtr[0 .. size + @sizeOf(usize)], if (nsize == 0) 0 else @sizeOf(usize) + nsize) catch return null));
     @as(*usize, @ptrCast(@alignCast(op))).* = nsize;
     return @ptrFromInt(@intFromPtr(op) + @sizeOf(usize));
 }
-fn deallocFn(block: ?*anyopaque, user: ?*anyopaque) callconv(.C) void {
-    const allocator: *const Allocator = @ptrCast(@alignCast(user));
+fn deallocFn(block: ?*anyopaque, _: ?*anyopaque) callconv(.C) void {
+    const allocator = globalAllocator;
     const manyPtr: [*]u8 = @ptrFromInt(@intFromPtr(block) - @sizeOf(usize));
     const size = @as(*usize, @ptrCast(@alignCast(manyPtr))).*;
     allocator.free(manyPtr[0 .. size + @sizeOf(usize)]);
@@ -886,7 +886,7 @@ pub fn initAllocator(allocator: ?*const Allocator) void {
                 .allocate = &allocFn,
                 .reallocate = &reallocFn,
                 .deallocate = &deallocFn,
-                .user = @as(*anyopaque, @constCast(@ptrCast(alloc))),
+                .user = null,
             }
     else
         null);
