@@ -122,9 +122,22 @@ pub fn build(b: *std.Build) void {
     });
     stbModule.linkLibrary(stbLib);
 
+    const dgrModule = b.addModule("DGR", .{
+        .root_source_file = b.path("src/DGR/lib.zig"),
+        .imports = &.{
+            .{
+                .name = "glfw",
+                .module = glfwModule,
+            },
+            .{
+                .name = "glad",
+                .module = gladModule,
+            },
+        },
+    });
+
     const libModule = b.addModule("zig3d", .{
         .root_source_file = b.path("src/lib.zig"),
-        .link_libc = true,
         .imports = &.{
             .{
                 .name = "glfw",
@@ -146,6 +159,10 @@ pub fn build(b: *std.Build) void {
                 .name = "freetype",
                 .module = freetypeModule,
             },
+            .{
+                .name = "DGR",
+                .module = dgrModule,
+            },
         },
     });
 
@@ -161,6 +178,22 @@ pub fn build(b: *std.Build) void {
     makeDemo(b, utils, buildAllDemos, "quad", "Run the demo quad app", optimize, target);
     makeDemo(b, utils, buildAllDemos, "bindlessTexture", "Run the bindless texture demo app", optimize, target);
     makeDemo(b, utils, buildAllDemos, "instancing", "Run the instancing demo app", optimize, target);
+
+    { // test step
+        const tests = b.addExecutable(.{
+            .name = "test",
+            .root_source_file = b.path("src/test.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+        tests.root_module.addImport("zig3d", libModule);
+
+        const testsRun = b.addRunArtifact(tests);
+        testsRun.step.dependOn(&tests.step);
+
+        const testStep = b.step("test", "Run unit tests");
+        testStep.dependOn(&testsRun.step);
+    }
 }
 
 fn makeDemo(b: *std.Build, utils: *std.Build.Module, forceInstall: bool, comptime name: []const u8, desc: []const u8, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget) void {

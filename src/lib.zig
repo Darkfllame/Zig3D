@@ -9,7 +9,7 @@ pub const glad = @import("glad");
 pub const stb = @import("stb");
 pub const freetype = @import("freetype");
 pub const zlm = @import("zlm");
-pub const DGR = @import("DGR/lib.zig");
+pub const DGR = @import("DGR");
 
 comptime {
     @setEvalBranchQuota(0xFFFFFFFF);
