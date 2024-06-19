@@ -122,20 +122,6 @@ pub fn build(b: *std.Build) void {
     });
     stbModule.linkLibrary(stbLib);
 
-    const dgrModule = b.addModule("DGR", .{
-        .root_source_file = b.path("src/DGR/lib.zig"),
-        .imports = &.{
-            .{
-                .name = "glfw",
-                .module = glfwModule,
-            },
-            .{
-                .name = "glad",
-                .module = gladModule,
-            },
-        },
-    });
-
     const libModule = b.addModule("zig3d", .{
         .root_source_file = b.path("src/lib.zig"),
         .imports = &.{
@@ -158,10 +144,6 @@ pub fn build(b: *std.Build) void {
             .{
                 .name = "freetype",
                 .module = freetypeModule,
-            },
-            .{
-                .name = "DGR",
-                .module = dgrModule,
             },
         },
     });
